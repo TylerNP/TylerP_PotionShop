@@ -6,6 +6,9 @@ from enum import Enum
 import sqlalchemy
 from src import database as db
 
+with db.engine.begin() as connection: 
+    result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 10"))
+
 router = APIRouter(
     prefix="/carts",
     tags=["cart"],
