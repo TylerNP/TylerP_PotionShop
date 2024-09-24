@@ -3,6 +3,9 @@ from fastapi import APIRouter
 import sqlalchemy
 from src import database as db
 
+with db.engine.begin() as connection: 
+    result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+
 router = APIRouter()
 
 

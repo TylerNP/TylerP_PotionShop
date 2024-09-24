@@ -6,9 +6,8 @@ import sqlalchemy
 from src import database as db
 
 with db.engine.begin() as connection: 
-    result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-    for row in result:
-        print(row)
+    result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+    print(result.first()[0])
 
 router = APIRouter(
     prefix="/barrels",
