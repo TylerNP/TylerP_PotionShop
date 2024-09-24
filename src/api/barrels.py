@@ -7,7 +7,7 @@ from src import database as db
 
 with db.engine.begin() as connection: 
     result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-    if row.num_green_potions < 10:
+    if result.num_green_potions < 10:
         print("WORKED")
 
 router = APIRouter(
