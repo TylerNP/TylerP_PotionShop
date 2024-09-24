@@ -7,6 +7,8 @@ from src import database as db
 
 with db.engine.begin() as connection: 
     result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+    if result[0] < 10:
+        print("TEST")
 
 router = APIRouter(
     prefix="/barrels",
