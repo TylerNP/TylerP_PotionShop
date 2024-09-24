@@ -5,6 +5,10 @@ from src.api import auth
 import sqlalchemy
 from src import database as db
 
+with db.engine.begin() as connection: 
+    result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+    print(result)
+
 router = APIRouter(
     prefix="/barrels",
     tags=["barrels"],
