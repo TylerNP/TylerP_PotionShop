@@ -8,7 +8,8 @@ from src import database as db
 with db.engine.begin() as connection: 
     result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
     for row in result:
-        print(row)
+        if int(row) < 10:
+            print("WORKED")
 
 router = APIRouter(
     prefix="/barrels",
