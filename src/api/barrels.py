@@ -9,7 +9,7 @@ with db.engine.begin() as connection:
     result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
     for row in result:
         if row.num_green_potions < 10:
-            print("WORKED")
+            print("BUY POTION")
 
 router = APIRouter(
     prefix="/barrels",

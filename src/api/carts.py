@@ -7,7 +7,11 @@ import sqlalchemy
 from src import database as db
 
 with db.engine.begin() as connection: 
-    result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 10"))
+    result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+    for row in result:
+        #wait for checkout and update
+        textSQL = "UPDATE global_inventory SET gold = "
+        #try to update database gold when purchase connection.execute(sqlalchemy.text(SQLTEXT+newGoldAmount))
 
 router = APIRouter(
     prefix="/carts",

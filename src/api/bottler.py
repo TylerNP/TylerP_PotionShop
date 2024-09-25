@@ -8,6 +8,9 @@ from src import database as db
 
 with db.engine.begin() as connection: 
     result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+    for row in result:
+        if row.num_green_m1 > 0:
+            print("MIX")
 
 router = APIRouter(
     prefix="/bottler",
