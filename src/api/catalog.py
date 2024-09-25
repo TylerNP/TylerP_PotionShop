@@ -5,10 +5,6 @@ from src import database as db
 
 with db.engine.begin() as connection: 
     result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-    #confirm how many potions to sell . . .
-    for row in result:
-        if row.num_green_potions > 0:
-            print("SELL POTIONS")
 
 router = APIRouter()
 

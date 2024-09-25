@@ -7,9 +7,6 @@ from src import database as db
 
 with db.engine.begin() as connection: 
     result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-    for row in result:
-        if row.num_green_potions < 10:
-            print("BUY POTION")
 
 router = APIRouter(
     prefix="/barrels",
@@ -36,13 +33,26 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 # Gets called once a day
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    """ """
+    """ 
+    Process available plan, 
+    Then, buy when low on potions
+    """
+    buyAmt = 0
+    result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+    for row in result:
+        gold = row.gold
+
     print(wholesale_catalog)
+    for row in result:
+        if row.num_green_potions < 10:
+            for barrel in wholesale_catalog:
+                if barrel.sku == "SMALL_GREEN_BARREL":
+                    buyAmt = gold//barrel.price 
 
     return [
         {
-            "sku": "SMALL_RED_BARREL",
-            "quantity": 1,
+            "sku": "SMALL_GREEN_BARREL",
+            "quantity": buyAmt,
         }
     ]
 
