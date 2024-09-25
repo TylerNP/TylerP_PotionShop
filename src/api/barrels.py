@@ -6,7 +6,7 @@ import sqlalchemy
 from src import database as db
 
 with db.engine.begin() as connection: 
-    result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+    result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
 
 router = APIRouter(
     prefix="/barrels",
@@ -38,7 +38,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     Then, buy when low on potions
     """
     buyAmt = 0
-    result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
     for row in result:
         gold = row.gold
 
