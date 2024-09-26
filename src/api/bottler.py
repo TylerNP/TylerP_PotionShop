@@ -31,7 +31,12 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {greenPotCurr+greenPotCnt}"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {greenMlCurr-greenMlUsed}"))
 
-    return "OK"
+    return [
+            {
+                "potions_deliverd": greenPotCnt,
+                "id": order_id
+            }
+    ]
 
 @router.post("/plan")
 def get_bottle_plan():

@@ -40,7 +40,12 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     
     print(f"barrels delievered: {count} order_id: {order_id}")
 
-    return "OK"
+    return [
+            {
+                "barrels delivered": count,
+                "order_id": order_id
+            }
+    ]
 
 # Gets called once a day
 @router.post("/plan")
@@ -61,13 +66,11 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             if barrel.potion_type == [0,100,0,0]: # and numGreenPot < 10:
                 connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 0"))
                 barrelName = barrel.sku
-                buyAmt = gold//barrel.price
+                buyAmt = gold//barrel.price + numGreenPot
                 if barrel.quantity < buyAmt:
                     buyAmt = barrel.quantity
 
     print(wholesale_catalog)
-    if buyAmt == 0 or barrelName == "":
-        return [{}]
 
     return [
         {
