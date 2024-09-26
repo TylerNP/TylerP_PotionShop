@@ -33,7 +33,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
 
     return [
             {
-                "potions_deliverd": greenPotCnt,
+                "potions_delivered": potions_delivered,
                 "id": order_id
             }
     ]

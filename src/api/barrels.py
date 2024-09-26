@@ -42,7 +42,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 
     return [
             {
-                "barrels delivered": count,
+                "barrels delivered": barrels_delivered,
                 "order_id": order_id
             }
     ]
@@ -63,8 +63,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         for barrel in wholesale_catalog:
             if gold < barrel.price:
                 break
-            if barrel.potion_type == [0,100,0,0]: # and numGreenPot < 10:
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 0"))
+            if barrel.potion_type == [0,100,0,0] and numGreenPot < 10:
                 barrelName = barrel.sku
                 buyAmt = gold//barrel.price + numGreenPot
                 if barrel.quantity < buyAmt:
