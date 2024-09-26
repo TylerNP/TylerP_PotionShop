@@ -113,4 +113,4 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
 
-    return {"total_potions_bought": 1, "total_gold_paid": CartCheckout.payment}
+    return {"total_potions_bought": 1, "total_gold_paid": int(CartCheckout.payment)}
