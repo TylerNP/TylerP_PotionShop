@@ -45,6 +45,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         for barrel in wholesale_catalog:
             if barrel.sku == "SMALL_GREEN_BARREL":
                 buyAmt = gold//barrel.price 
+                if buyAmt == 0:
+                    buyAmt = 1
 
     return [
         {
