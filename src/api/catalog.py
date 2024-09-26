@@ -4,7 +4,7 @@ import sqlalchemy
 from src import database as db
 
 with db.engine.begin() as connection: 
-    result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+    result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
 
 router = APIRouter()
 
@@ -17,10 +17,10 @@ def get_catalog():
 
     return [
             {
-                "sku": "RED_POTION_0",
-                "name": "red potion",
+                "sku": "GREEN_POTION_0",
+                "name": "green potion",
                 "quantity": 1,
-                "price": 50,
-                "potion_type": [100, 0, 0, 0],
+                "price": result,
+                "potion_type": [0, 100, 0, 0],
             }
         ]
