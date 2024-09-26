@@ -62,7 +62,7 @@ def get_bottle_plan():
                     "loc": [
                         "bottler/plan", 0
                     ],
-                    "msg": "no potions available",
+                    "msg": "no ml available",
                     "type": "ZeroDivisionError"
                 }
             ]

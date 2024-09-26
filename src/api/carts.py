@@ -80,8 +80,6 @@ def post_visits(visit_id: int, customers: list[Customer]):
     """
     Which customers visited the shop today?
     """
-    with db.engine.begin() as connection: 
-        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 1000"))
     print(customers)
 
     return [
@@ -105,7 +103,7 @@ class CartItem(BaseModel):
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
 
-    return "OK"
+    return { "quantity": 0 }
 
 
 class CartCheckout(BaseModel):
@@ -115,4 +113,4 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
 
-    return {"total_potions_bought": 1, "total_gold_paid": 50}
+    return {"total_potions_bought": 1, "total_gold_paid": CartCheckout.payment}
