@@ -7,7 +7,8 @@ import sqlalchemy
 from src import database as db
 
 with db.engine.begin() as connection: 
-    result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+    result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
+    print(result)
 
 router = APIRouter(
     prefix="/bottler",
@@ -36,12 +37,12 @@ def get_bottle_plan():
     # green potion to add.
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
-    # Initial logic: bottle all barrels into red potions.
+    # Initial logic: bottle all barrels into green potions.
 
     return [
             {
-                "potion_type": [100, 0, 0, 0],
-                "quantity": 5,
+                "potion_type": [0, 100, 0, 0],
+                "quantity": 1,
             }
         ]
 
