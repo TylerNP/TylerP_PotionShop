@@ -23,9 +23,17 @@ class Barrel(BaseModel):
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     """ """
-    potCnt = 0
+    greenPotCnt = 0
+    goldCost = 0
     for barrel in barrels_delivered:
-        potCnt += barrel.quantity
+        greenPotCnt += barrel.quantity
+        goldCost += barrel.quantity*barrel.price
+    with db.engine.begin() as connection: 
+        goldCurr = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        greenPotCurr = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {goldCurr-goldCost}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {greenPotCurr+greenPotCnt}"))
+    
     print(f"barrels delievered: {potCnt} order_id: {order_id}")
 
     return "OK"
@@ -43,19 +51,15 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
         numGreenPot = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
         price = 0
-        if numGreenPot < 10:
-            for barrel in wholesale_catalog:
-                if barrel.sku == "SMALL_GREEN_BARREL":
-                    connection.execute(sqlalchemy.text("UPDATE global_inveotyr SET gold = 0"))
-                    buyAmt = gold//barrel.price 
-                    price = barrel.price
-                    if barrel.quantity < buyAmt:
-                        buyAmt = barrel.quantity
-                    if gold < barrel.price:
-                        buyAmt = 1
-
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {gold-buyAmt*price}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {numGreenPot+buyAmt}"))
+        for barrel in wholesale_catalog:
+            if barrel.sku == "SMALL_GREEN_BARREL" and numGreenPot < 10:
+                connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 0"))
+                buyAmt = gold//barrel.price
+                price = barrel.price
+                if barrel.quantity < buyAmt:
+                    buyAmt = barrel.quantity
+                if gold < barrel.price:
+                    buyAmt = 1
 
     print(wholesale_catalog)
     
