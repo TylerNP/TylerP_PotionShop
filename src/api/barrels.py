@@ -5,9 +5,6 @@ from src.api import auth
 import sqlalchemy
 from src import database as db
 
-with db.engine.begin() as connection: 
-    result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory")).scalar()
-
 router = APIRouter(
     prefix="/barrels",
     tags=["barrels"],
@@ -40,16 +37,28 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     Process available plan, 
     Then, buy when low on potions
     """
-    buyAmt = 0
-    gold = result.gold
+
+    buyAmt = 1
+
+    with db.engine.begin() as connection: 
+        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
+        numGreenPot = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
+        price = 0
+        if numGreenPot < 10:
+            for barrel in wholesale_catalog:
+                if barrel.sku == "SMALL_GREEN_BARREL":
+                    buyAmt = gold//barrel.price 
+                    price = barrel.price
+                    if barrel.quantity < buyAmt:
+                        buyAmt = barrel.quantity
+                    if gold < barrel.price:
+                        buyAmt = 1
+
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {gold-buyAmt*price}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {numGreenPot+buyAmt}"))
 
     print(wholesale_catalog)
-    if result.num_green_potions < 10:
-        for barrel in wholesale_catalog:
-            if barrel.sku == "SMALL_GREEN_BARREL":
-                buyAmt = gold//barrel.price 
-                if buyAmt == 0:
-                    buyAmt = 1
+    
 
     return [
         {

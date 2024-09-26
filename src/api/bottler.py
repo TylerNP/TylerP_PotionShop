@@ -6,9 +6,6 @@ from src.api import auth
 import sqlalchemy
 from src import database as db
 
-with db.engine.begin() as connection: 
-    result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-
 router = APIRouter(
     prefix="/bottler",
     tags=["bottler"],
@@ -38,18 +35,21 @@ def get_bottle_plan():
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
     # Initial logic: bottle all barrels into green potions.
-    mlLeft = result
-    newPot = 0
-    while mlLeft >= 100:
-        newPot += 1
-        mlLeft -= 100
+    newGreenPot = 0
+    with db.engine.begin() as connection: 
+        greenMlLeft = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
+        potsGreenCur = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
+        while greenMlLeft >= 100:
+            newGreenPot += 1
+            greenMlLeft -= 100
 
-    connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {mlLeft}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {greenMlLeft}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {potsGreenCur+newGreenPot}"))
 
     return [
             {
                 "potion_type": [0, 100, 0, 0],
-                "quantity": newPot,
+                "quantity": newGreenPot,
             }
         ]
 
