@@ -26,7 +26,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         greenMlUsed += 100
         print(f"potions delievered: {potion.type} order_id: {order_id}")
     with db.engine.begin() as connection:
-        greenPotCurr = connection.execute(sqlalchemy.text("SLECT num_green_potions FROM global_inventory"))
+        greenPotCurr = connection.execute(sqlalchemy.text("SLECT num_green_potions FROM global_inventory")).scalar()
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {greenPotCurr+greenPotCnt}"))
 
 
