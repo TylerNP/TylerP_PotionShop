@@ -22,7 +22,9 @@ class Barrel(BaseModel):
 
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
-    """ """
+    """ 
+    Updates the database information with the barrels bought
+    """
     count = 0
     goldCost = 0
     greenMlCnt = 0
@@ -44,29 +46,32 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ 
-    Process available barrels for sale and buy when low on potions
+    Process available barrels for sale and returns what barrels are bought
     """
 
-    buyAmt = 1
+    buyAmt = 0
+    barrelName = ""
 
     with db.engine.begin() as connection: 
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
         numGreenPot = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
         for barrel in wholesale_catalog:
-            if barrel.sku == "SMALL_GREEN_BARREL" and numGreenPot < 10:
+            if gold < barrel.price:
+                break
+            if barrel.potion_type == [0,100,0,0] and numGreenPot < 10:
                 connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 0"))
+                barrelName = barrel.sku
                 buyAmt = gold//barrel.price
                 if barrel.quantity < buyAmt:
                     buyAmt = barrel.quantity
-                if gold < barrel.price:
-                    buyAmt = 1
 
     print(wholesale_catalog)
-    
+    if buyAmt == 0 or barrelName == "":
+        return [{}]
 
     return [
         {
-            "sku": "SMALL_GREEN_BARREL",
+            "sku": barrelName,
             "quantity": buyAmt,
         }
     ]
