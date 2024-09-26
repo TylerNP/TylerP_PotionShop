@@ -55,6 +55,19 @@ def get_bottle_plan():
             newGreenPot += 1
             greenMlLeft -= 100
 
+    if newGreenPot == 0:
+        return {
+            "detail": [
+                {
+                    "loc": [
+                        "bottler/plan", 0
+                    ],
+                    "msg": "no potions available",
+                    "type": "ZeroDivisionError"
+                }
+            ]
+        }
+
     return [
             {
                 "potion_type": [0, 100, 0, 0],

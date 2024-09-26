@@ -67,6 +67,18 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 if barrel.quantity < buyAmt:
                     buyAmt = barrel.quantity
 
+    if buyAmt == 0:
+        return {
+            "detail": [
+                {
+                    "loc": [
+                        "barrels/plan", 0
+                    ],
+                    "msg": "no barrels available",
+                    "type": "ZeroDivisionError"
+                }
+            ]
+        }
     return [
         {
             "sku": barrelName,
