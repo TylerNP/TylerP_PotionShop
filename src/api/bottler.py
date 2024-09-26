@@ -47,8 +47,6 @@ def get_bottle_plan():
     newGreenPot = 0
     with db.engine.begin() as connection: 
         greenMlLeft = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        if greenMlLeft < 100:
-            return [{}]
         while greenMlLeft >= 100:
             newGreenPot += 1
             greenMlLeft -= 100

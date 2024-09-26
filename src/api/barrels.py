@@ -58,7 +58,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         for barrel in wholesale_catalog:
             if gold < barrel.price:
                 break
-            if barrel.potion_type == [0,100,0,0] and numGreenPot < 10:
+            if barrel.potion_type == [0,100,0,0]: # and numGreenPot < 10:
                 connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 0"))
                 barrelName = barrel.sku
                 buyAmt = gold//barrel.price
