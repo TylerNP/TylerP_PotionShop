@@ -34,7 +34,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     return [
             {
                 "order_id": order_id,
-                "potions_delivered": [0,100,0,0],
+                "potions_delivered": [0,100,0,0]
             }
     ]
 
@@ -61,7 +61,7 @@ def get_bottle_plan():
     return [
             {
                 "potion_type": [0, 100, 0, 0],
-                "quantity": newGreenPot,
+                "quantity": newGreenPot
             }
         ]
 

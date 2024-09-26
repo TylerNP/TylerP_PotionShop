@@ -43,7 +43,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     return [
             {
                 "order_id": order_id,
-                "barrels_deliverd": count,
+                "barrels_deliverd": count
             }
     ]
 
@@ -77,7 +77,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     return [
         {
             "sku": barrelName,
-            "quantity": buyAmt,
+            "quantity": buyAmt
         }
     ]
 
