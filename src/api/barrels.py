@@ -40,12 +40,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     
     print(f"barrels delievered: {count} order_id: {order_id}")
 
-    return [
-            {
-                "order_id": order_id,
-                "barrels_deliverd": count
-            }
-    ]
+    return "OK"
 
 # Gets called once a day
 @router.post("/plan")

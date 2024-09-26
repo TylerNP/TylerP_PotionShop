@@ -84,15 +84,17 @@ def post_visits(visit_id: int, customers: list[Customer]):
         result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 1000"))
     print(customers)
 
-    return {
+    return [
+            {
                 "success":False
-    }
+            }
+    ]
 
 
 @router.post("/")
 def create_cart(new_cart: Customer):
     """ """
-    return {"cart_id": 1}
+    return [{"cart_id": 1}]
 
 
 class CartItem(BaseModel):
