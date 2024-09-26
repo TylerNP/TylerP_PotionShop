@@ -24,7 +24,6 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     for potion in potions_delivered:
         greenPotCnt += potion.quantity
         greenMlUsed += 100*potion.quantity
-        print(f"potions delievered: {potions_delivered} order_id: {order_id}")
     with db.engine.begin() as connection:
         greenPotCurr = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
         greenMlCurr = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()

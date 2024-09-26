@@ -37,8 +37,6 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
         greenMlCurr = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {goldCurr-goldCost}"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {greenMlCurr+greenMlCnt}"))
-    
-    print(f"barrels delievered: {count} order_id: {order_id}")
 
     return [
             {
@@ -68,8 +66,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 buyAmt = gold//barrel.price
                 if barrel.quantity < buyAmt:
                     buyAmt = barrel.quantity
-
-    print(wholesale_catalog)
 
     return [
         {
