@@ -23,18 +23,20 @@ class Barrel(BaseModel):
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     """ """
-    greenPotCnt = 0
+    count = 0
     goldCost = 0
+    greenMlCnt = 0
     for barrel in barrels_delivered:
-        greenPotCnt += barrel.quantity
+        count += barrel.quantity
         goldCost += barrel.quantity*barrel.price
+        greenMlCnt += barrel.ml_per_barrel*barrel.quantity
     with db.engine.begin() as connection: 
         goldCurr = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        greenPotCurr = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        greenMlCurr = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {goldCurr-goldCost}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {greenPotCurr+greenPotCnt}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {greenMlCurr+greenMlCnt}"))
     
-    print(f"barrels delievered: {greenPotCnt} order_id: {order_id}")
+    print(f"barrels delievered: {count} order_id: {order_id}")
 
     return "OK"
 
@@ -50,12 +52,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection: 
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
         numGreenPot = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
-        price = 0
         for barrel in wholesale_catalog:
             if barrel.sku == "SMALL_GREEN_BARREL" and numGreenPot < 10:
                 connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = 0"))
                 buyAmt = gold//barrel.price
-                price = barrel.price
                 if barrel.quantity < buyAmt:
                     buyAmt = barrel.quantity
                 if gold < barrel.price:

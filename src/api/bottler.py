@@ -19,8 +19,16 @@ class PotionInventory(BaseModel):
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
     """ """
+    greenPotCnt = 0
+    greenMlUsed = 0
     for potion in potions_delivered:
+        greenPotCnt += potion.quantity
+        greenMlUsed += 100
         print(f"potions delievered: {potion.type} order_id: {order_id}")
+    with db.engine.begin() as connection:
+        greenPotCurr = connection.execute(sqlalchemy.text("SLECT num_green_potions FROM global_inventory"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {greenPotCurr+greenPotCnt}"))
+
 
     return "OK"
 
@@ -38,13 +46,9 @@ def get_bottle_plan():
     newGreenPot = 0
     with db.engine.begin() as connection: 
         greenMlLeft = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        potsGreenCur = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
         while greenMlLeft >= 100:
             newGreenPot += 1
             greenMlLeft -= 100
-
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {greenMlLeft}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {potsGreenCur+newGreenPot}"))
 
     return [
             {
