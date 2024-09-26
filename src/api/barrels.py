@@ -34,8 +34,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ 
-    Process available plan, 
-    Then, buy when low on potions
+    Process available barrels for sale and buy when low on potions
     """
 
     buyAmt = 1
@@ -47,6 +46,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         if numGreenPot < 10:
             for barrel in wholesale_catalog:
                 if barrel.sku == "SMALL_GREEN_BARREL":
+                    connection.execute(sqlalchemy.text("UPDATE global_inveotyr SET gold = 0"))
                     buyAmt = gold//barrel.price 
                     price = barrel.price
                     if barrel.quantity < buyAmt:
