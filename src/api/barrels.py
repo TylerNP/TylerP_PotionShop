@@ -68,7 +68,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                     buy_amt = barrel.quantity
     return [
         {
-            "sku": barrel_list[0],
+            "sku": barrel_list,
             "quantity": buy_amt
         }
     ]
