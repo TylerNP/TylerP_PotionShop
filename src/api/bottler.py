@@ -19,16 +19,14 @@ class PotionInventory(BaseModel):
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
     """ """
-    greenPotCnt = 0
-    greenMlUsed = 0
+    green_pot_cnt = 0
+    green_ml_used = 0
     for potion in potions_delivered:
-        greenPotCnt += potion.quantity
-        greenMlUsed += 100*potion.quantity
+        green_pot_cnt += potion.quantity
+        green_ml_used += potion.potion_type[1]*potion.quantity
     with db.engine.begin() as connection:
-        greenPotCurr = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
-        greenMlCurr = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {greenPotCurr+greenPotCnt}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {greenMlCurr-greenMlUsed}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = num_green_potions + {green_pot_cnt}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = num_green_ml - {green_ml_used}"))
 
     return [
             {
@@ -48,30 +46,15 @@ def get_bottle_plan():
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
     # Initial logic: bottle all barrels into green potions.
-    newGreenPot = 0
+    new_green_pot = 0
     with db.engine.begin() as connection: 
-        greenMlLeft = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        while greenMlLeft >= 100:
-            newGreenPot += 1
-            greenMlLeft -= 100
-
-    if newGreenPot == 0:
-        return {
-            "detail": [
-                {
-                    "loc": [
-                        "bottler/plan", 0
-                    ],
-                    "msg": "no ml available",
-                    "type": "ZeroDivisionError"
-                }
-            ]
-        }
+        green_ml_left = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
+        new_green_pot = green_ml_left//100
 
     return [
             {
                 "potion_type": [0, 100, 0, 0],
-                "quantity": newGreenPot
+                "quantity": new_green_pot
             }
         ]
 

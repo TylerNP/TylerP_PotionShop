@@ -26,17 +26,17 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     Updates the database information with the barrels bought
     """
     count = 0
-    goldCost = 0
-    greenMlCnt = 0
+    gold_cost = 0
+    green_ml_cnt = 0
     for barrel in barrels_delivered:
         count += barrel.quantity
-        goldCost += barrel.quantity*barrel.price
-        greenMlCnt += barrel.ml_per_barrel*barrel.quantity
+        gold_cost += barrel.quantity*barrel.price
+        green_ml_cnt += barrel.ml_per_barrel*barrel.quantity
+    print(barrels_delivered[0].quantity)
     with db.engine.begin() as connection: 
-        goldCurr = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        greenMlCurr = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {goldCurr-goldCost}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {greenMlCurr+greenMlCnt}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold - {gold_cost}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = num_green_ml + {green_ml_cnt}"))
+        connection.commit()
 
     return [
             {
@@ -66,19 +66,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 buyAmt = gold//barrel.price
                 if barrel.quantity < buyAmt:
                     buyAmt = barrel.quantity
-
-    if buyAmt == 0:
-        return {
-            "detail": [
-                {
-                    "loc": [
-                        "barrels/plan", 0
-                    ],
-                    "msg": "no barrels available",
-                    "type": "ZeroDivisionError"
-                }
-            ]
-        }
+                    
     return [
         {
             "sku": barrelName,
