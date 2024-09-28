@@ -150,6 +150,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         connection.execute(sqlalchemy.text(f"DROP TABLE cart_number_{cart_id}"))
         connection.execute(sqlalchemy.text(f"DELETE FROM carts WHERE cart_id = '{cart_id}'"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {int(cart_checkout.payment)}"))
+        print(cart_checkout.payment)
 
 
     return {"total_potions_bought": cnt, "total_gold_paid": int(cart_checkout.payment)}
