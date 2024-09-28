@@ -109,7 +109,7 @@ def create_cart(new_cart: Customer):
             else:
                 break
 
-        connection.execute(sqlalchemy.text(f"INSERT INTO carts (cart_id, total_potions) VALUES ('{new_id}', 0)"))
+        connection.execute(sqlalchemy.text(f"INSERT INTO carts (cart_id) VALUES ('{new_id}')"))
 
     return [{"cart_id": new_id}]
 
@@ -138,16 +138,17 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """
     Remove table and reliqish id for cart, then update gold and potion count
     """
-    total = 0
+    gold_total = 0
     with db.engine.begin() as connection: 
-        total = connection.execute(sqlalchemy.text(f"SELECT total_potions FROM carts WHERE cart_id = '{cart_id}'")).scalar()
-        if total > 0:
-            potions = connection.execute(sqlalchemy.text(f"SELECT potion_name, potion_quantity FROM cart_items WHERE cart_id = '{cart_id}'"))
-            for item in potions:
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_{item.potion_name}_potions = num_{item.potion_name}_potions - {item.potion_quantity}"))
+        potions = connection.execute(sqlalchemy.text(f"SELECT potion_quantity, potion_id FROM cart_inventory WHERE cart_id = '{cart_id}'"))
+        for item in potions:
+            price = connection.execute(sqlalchemy.text(f"SELECT potion.price FROM potions WHERE potion_id = {item.potion_id}")).scalar() 
+            gold_total += item.potion_quantity * price
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_{item.potion_name}_potions = num_{item.potion_name}_potions - {item.potion_quantity}"))
+
         connection.execute(sqlalchemy.text(f"DELETE FROM carts WHERE cart_id = '{cart_id}'"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {int(cart_checkout.payment)}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {gold_total}"))
         print(cart_checkout.payment)
 
 
-    return {"total_potions_bought": total, "total_gold_paid": int(cart_checkout.payment)}
+    return {"total_potions_bought": gold_total, "total_gold_paid": gold_total}
