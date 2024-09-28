@@ -13,13 +13,13 @@ def get_catalog():
     """
 
     with db.engine.begin() as connection: 
-        greenPotCnt = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
+        green_pot_cnt = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
 
     return [
             {
                 "sku": "GREEN_POTION_0",
                 "name": "green potion",
-                "quantity": greenPotCnt,
+                "quantity": green_pot_cnt,
                 "price": 100,
                 "potion_type": [0, 100, 0, 0]
             }
