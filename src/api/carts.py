@@ -110,7 +110,6 @@ def create_cart(new_cart: Customer):
                 break
 
         connection.execute(sqlalchemy.text(f"INSERT INTO carts (cart_id, total_potions) VALUES ('{new_id}', 0)"))
-        connection.execute(sqlalchemy.text(f"CREATE TABLE cart_number_{new_id} (id bigint generated always as identity, potion_name text, potion_quantity int)"))
 
     return [{"cart_id": new_id}]
 
@@ -125,7 +124,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     Add item to cart tables and remove item from global inventory
     """
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text(f"INSERT INTO cart_number_{cart_id} (potion_name, potion_quantity) VALUES ('{item_sku}', {cart_item.quantity})"))
+        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, potion_name, potion_quantity) VALUES ('{cart_id}', '{item_sku}', {cart_item.quantity})"))
         connection.execute(sqlalchemy.text(f"UPDATE carts SET total_potions = total_potions + {cart_item.quantity} WHERE cart_id = '{cart_id}' "))
 
     return { "quantity": cart_item.quantity }
@@ -139,18 +138,16 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """
     Remove table and reliqish id for cart, then update gold and potion count
     """
-    cnt = 0
+    total = 0
     with db.engine.begin() as connection: 
         total = connection.execute(sqlalchemy.text(f"SELECT total_potions FROM carts WHERE cart_id = '{cart_id}'")).scalar()
         if total > 0:
-            potions = connection.execute(sqlalchemy.text(f"SELECT potion_name, potion_quantity FROM cart_number_{cart_id}"))
+            potions = connection.execute(sqlalchemy.text(f"SELECT potion_name, potion_quantity FROM cart_items WHERE cart_id = '{cart_id}'"))
             for item in potions:
-                cnt += item.potion_quantity
                 connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_{item.potion_name}_potions = num_{item.potion_name}_potions - {item.potion_quantity}"))
-        connection.execute(sqlalchemy.text(f"DROP TABLE cart_number_{cart_id}"))
         connection.execute(sqlalchemy.text(f"DELETE FROM carts WHERE cart_id = '{cart_id}'"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {int(cart_checkout.payment)}"))
         print(cart_checkout.payment)
 
 
-    return {"total_potions_bought": cnt, "total_gold_paid": int(cart_checkout.payment)}
+    return {"total_potions_bought": total, "total_gold_paid": int(cart_checkout.payment)}

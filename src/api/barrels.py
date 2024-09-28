@@ -66,7 +66,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             if barrel.quantity < buy_amt:
                 buy_amt = barrel.quantity
             gold -= buy_amt*barrel.price
-            barrel_plan.append( {"sku": barrel.sku, "quantity": buy_amt} )
+            if buy_amt > 0:
+                barrel_plan.append( {"sku": barrel.sku, "quantity": buy_amt} )
             
     return barrel_plan
 
