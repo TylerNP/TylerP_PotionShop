@@ -124,8 +124,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     Add item to cart tables and remove item from global inventory
     """
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, potion_name, potion_quantity) VALUES ('{cart_id}', '{item_sku}', {cart_item.quantity})"))
-        connection.execute(sqlalchemy.text(f"UPDATE carts SET total_potions = total_potions + {cart_item.quantity} WHERE cart_id = '{cart_id}' "))
+        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('{cart_id}', '{item_sku}', {cart_item.quantity})"))
 
     return { "quantity": cart_item.quantity }
 
@@ -140,11 +139,11 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """
     gold_total = 0
     with db.engine.begin() as connection: 
-        potions = connection.execute(sqlalchemy.text(f"SELECT potion_quantity, potion_id FROM cart_inventory WHERE cart_id = '{cart_id}'"))
+        potions = connection.execute(sqlalchemy.text(f"SELECT potion_quantity, sku FROM cart_inventory WHERE cart_id = '{cart_id}'"))
         for item in potions:
-            price = connection.execute(sqlalchemy.text(f"SELECT potion.price FROM potions WHERE potion_id = {item.potion_id}")).scalar() 
+            price = connection.execute(sqlalchemy.text(f"SELECT potion.price FROM potions WHERE sku = '{item.sku}'")).scalar() 
             gold_total += item.potion_quantity * price
-            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_{item.potion_name}_potions = num_{item.potion_name}_potions - {item.potion_quantity}"))
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_{item.sku}_potions = num_{item.sku}_potions - {item.potion_quantity}"))
 
         connection.execute(sqlalchemy.text(f"DELETE FROM carts WHERE cart_id = '{cart_id}'"))
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {gold_total}"))
