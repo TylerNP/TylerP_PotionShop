@@ -16,6 +16,7 @@ def get_catalog():
     green_pot_cnt = 0
     with db.engine.begin() as connection: 
         green_pot_cnt = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
+        potions = connection.execute(sqlalchemy.text("SELECT sku, quantity, price, type FROM potions LIMIT 6"))
         if green_pot_cnt > 0:
             potions_available.append( {
                 "sku": "green",

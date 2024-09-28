@@ -14,7 +14,9 @@ router = APIRouter(
 
 @router.get("/audit")
 def get_inventory():
-    """ """
+    """
+    Returns quantities of items in global inventory 
+    """
 
     gold = 0
     ml_in_barrels = 0
@@ -23,7 +25,6 @@ def get_inventory():
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
         ml_in_barrels = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
         number_of_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
-
     
     return {"number_of_potions": number_of_potions, "ml_in_barrels": ml_in_barrels, "gold": gold}
 
