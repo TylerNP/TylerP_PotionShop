@@ -125,7 +125,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     Add item to cart tables and remove item from global inventory
     """
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('{cart_id}', '{item_sku}', {cart_item.quantity})"))
+        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, sku, quantity) VALUES ('{cart_id}', '{item_sku}', {cart_item.quantity})"))
 
     return { "quantity": cart_item.quantity }
 
