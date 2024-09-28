@@ -23,6 +23,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     """
     green_pot_cnt = 0
     green_ml_used = 0
+    sql_to_execute = ""
     potions_created = []
     with db.engine.begin() as connection:
         for potion in potions_delivered:
@@ -30,10 +31,13 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                 green_pot_cnt += potion.quantity
                 green_ml_used += potion.potion_type[1]*potion.quantity
                 postgres_array = '{' + ','.join(map(str, potion.potion_type)) + '}'
-                connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = quantity + {potion.quantity} WHERE type <@ '{postgres_array}'::int[] AND type @> '{postgres_array}'::int[]"))
+                sql_to_execute = "UPDATE potions SET quantity = quantity + %d WHERE type <@ '%s'::int[] AND type @> '%s'::int[]"
+                connection.execute(sqlalchemy.text(sql_to_execute % (potion.quantity, postgres_array, postgres_array)))
                 potions_created.append( {"potions_delivered": potion.potion_type, "id": order_id} )
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_potions = num_potions + {green_pot_cnt}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = num_green_ml - {green_ml_used}"))
+        sql_to_execute = "UPDATE global_inventory SET num_potions = num_potions + %d"
+        connection.execute(sqlalchemy.text(sql_to_execute % green_pot_cnt))
+        sql_to_execute = "UPDATE global_inventory SET num_green_ml = num_green_ml - %d"
+        connection.execute(sqlalchemy.text(sql_to_execute % green_ml_used))
 
     return potions_created
 

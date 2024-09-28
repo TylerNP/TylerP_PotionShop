@@ -83,7 +83,8 @@ def post_visits(visit_id: int, customers: list[Customer]):
     visited = False
     with db.engine.begin() as connection:
         for customer in customers:
-            connection.execute(sqlalchemy.text(f"INSERT INTO customers (visit_id, level, customer_name, customer_class) VALUES ({visit_id}, {customer.level}, '{customer.customer_name}', '{customer.character_class}')"))
+            sql_to_execute = "INSERT INTO customers (visit_id, level, customer_name, customer_class) VALUES (%d, %d, '%s', '%s')"
+            connection.execute(sqlalchemy.text(sql_to_execute % (visit_id, customer.level, customer.customer_name, customer.character_class)))
             visited = True
     print(customers)
 
@@ -109,8 +110,10 @@ def create_cart(new_cart: Customer):
             else:
                 break
 
-        connection.execute(sqlalchemy.text(f"INSERT INTO carts (cart_id) VALUES ('{new_id}')"))
-        connection.execute(sqlalchemy.text(f"UPDATE customers SET cart_id = '{new_id}'"))
+        sql_to_execute = "INSERT INTO carts (cart_id) VALUES ('%d')"
+        connection.execute(sqlalchemy.text(sql_to_execute % new_id))
+        sql_to_execute = "UPDATE customers SET cart_id = '%d'"
+        connection.execute(sqlalchemy.text(sql_to_execute % new_id))
 
     return [{"cart_id": new_id}]
 
@@ -125,7 +128,8 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     Add item to cart tables and remove item from global inventory
     """
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text(f"INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('{cart_id}', '{item_sku}', {cart_item.quantity})"))
+        sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('%d', '%s', %d)"
+        connection.execute(sqlalchemy.text(sql_to_execute % (cart_id, item_sku, cart_item.quantity)))
 
     return { "quantity": cart_item.quantity }
 
@@ -141,17 +145,22 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     gold_total = 0
     total_potions = 0
     with db.engine.begin() as connection: 
-        potions = connection.execute(sqlalchemy.text(f"SELECT potion_quantity, sku FROM cart_items WHERE cart_id = '{cart_id}'"))
+        sql_to_execute = "SELECT potion_quantity, sku FROM cart_items WHERE cart_id = '%s'"
+        potions = connection.execute(sqlalchemy.text(sql_to_execute % cart_id))
         for item in potions:
-            price = connection.execute(sqlalchemy.text(f"SELECT price FROM potions WHERE sku = '{item.sku}'")).scalar() 
+            sql_to_execute = "SELECT price FROM potions WHERE sku = '%s'"
+            price = connection.execute(sqlalchemy.text(sql_to_execute % item.sku)).scalar() 
             gold_total += item.potion_quantity * price
             total_potions += item.potion_quantity
-            connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = quantity - {item.potion_quantity} WHERE sku = '{item.sku}'"))
-            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_potions = num_potions - {item.potion_quantity}"))
+            sql_to_execute = "UPDATE potions SET quantity = quantity - %d WHERE sku = '%s'"
+            connection.execute(sqlalchemy.text(sql_to_execute % (item.potion_quantity, item.sku)))
+            sql_to_execute = "UPDATE global_inventory SET num_potions = num_potions - %d"
+            connection.execute(sqlalchemy.text(sql_to_execute % item.potion_quantity))
 
-        connection.execute(sqlalchemy.text(f"DELETE FROM carts WHERE cart_id = '{cart_id}'"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {gold_total}"))
+        sql_to_execute = "DELETE FROM carts WHERE cart_id = '%d'"
+        connection.execute(sqlalchemy.text(sql_to_execute % cart_id))
+        sql_to_execute = "UPDATE global_inventory SET gold = gold + %d"
+        connection.execute(sqlalchemy.text(sql_to_execute % gold_total))
         print(cart_checkout.payment)
-
 
     return {"total_potions_bought": total_potions, "total_gold_paid": gold_total}
