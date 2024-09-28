@@ -110,6 +110,7 @@ def create_cart(new_cart: Customer):
                 break
 
         connection.execute(sqlalchemy.text(f"INSERT INTO carts (cart_id) VALUES ('{new_id}')"))
+        connection.execute(sqlalchemy.text(f"UPDATE customers SET cart_id = '{new_id}'"))
 
     return [{"cart_id": new_id}]
 
