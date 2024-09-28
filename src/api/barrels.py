@@ -28,13 +28,15 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     count = 0
     gold_cost = 0
     green_ml_cnt = 0
+
     for barrel in barrels_delivered:
         count += barrel.quantity
         gold_cost += barrel.quantity*barrel.price
         green_ml_cnt += barrel.ml_per_barrel*barrel.quantity
+        
     with db.engine.begin() as connection: 
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold - {gold_cost}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = num_green_ml{green_ml_cnt}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = num_green_ml + {green_ml_cnt}"))
 
     return [
             {

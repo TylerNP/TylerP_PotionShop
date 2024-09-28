@@ -18,7 +18,9 @@ class PotionInventory(BaseModel):
 
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
-    """ """
+    """ 
+    Update database values for ml and potions
+    """
     green_pot_cnt = 0
     green_ml_used = 0
     for potion in potions_delivered:
@@ -38,7 +40,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
 @router.post("/plan")
 def get_bottle_plan():
     """
-    Go from barrel to bottle.
+    Determine what potions to brew from remaining ml 
     """
 
     # Each bottle has a quantity of what proportion of red, blue, and
