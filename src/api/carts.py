@@ -80,11 +80,16 @@ def post_visits(visit_id: int, customers: list[Customer]):
     """
     Which customers visited the shop today?
     """
+    visited = False
+    with db.engine.begin() as connection:
+        for customer in customers:
+            connection.execute(sqlalchemy.text(f"INSERT INTO customers (visit_id, level, customer_name, customer_class) VALUES ({visit_id}, {customer.level}, '{customer.customer_name}', '{customer.character_class}')"))
+            visited = True
     print(customers)
 
     return [
             {
-                "success":True
+                "success":visited
             }
     ]
 
