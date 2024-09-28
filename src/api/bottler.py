@@ -29,7 +29,6 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
             if potion.quantity > 0:
                 green_pot_cnt += potion.quantity
                 green_ml_used += potion.potion_type[1]*potion.quantity
-                # FIX SQL TO ONLY UPDATE ONE POTION RATHER THAN ALL
                 postgres_array = '{' + ','.join(map(str, potion.potion_type)) + '}'
                 connection.execute(sqlalchemy.text(f"UPDATE potions SET quantity = quantity + {potion.quantity} WHERE type <@ '{postgres_array}'::int[] AND type @> '{postgres_array}'::int[]"))
                 potions_created.append( {"potions_delivered": potion.potion_type, "id": order_id} )
