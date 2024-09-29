@@ -27,21 +27,23 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     """
     count = 0
     gold_cost = 0
-    green_ml_usd = 0
+    green_ml_added = 0
     barrels_sent = []
 
     for barrel in barrels_delivered:
         count += barrel.quantity
         gold_cost += barrel.quantity*barrel.price
-        green_ml_usd += barrel.ml_per_barrel*barrel.quantity
+        green_ml_added += barrel.ml_per_barrel*barrel.quantity
         barrels_sent.append( {"barrels delivered": barrel, "order_id": order_id} )
         
     with db.engine.begin() as connection: 
         sql_to_execute = "UPDATE global_inventory SET gold = gold - %d"
         connection.execute(sqlalchemy.text(sql_to_execute % gold_cost))
         sql_to_execute = "UPDATE global_inventory SET num_green_ml = num_green_ml + %d"
-        connection.execute(sqlalchemy.text(sql_to_execute % green_ml_usd))
+        connection.execute(sqlalchemy.text(sql_to_execute % green_ml_added))
 
+    for barrel in barrels_sent:
+        print("Bought %d ml" % green_ml_added)
     return barrels_sent
 
 # Gets called once a day
@@ -71,5 +73,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             if buy_amt > 0:
                 barrel_plan.append( {"sku": barrel.sku, "quantity": buy_amt} )
             
+    for barrel in barrel_plan:
+        print("Order %d %s" % (barrel.quantity, barrel.sku))
     return barrel_plan
 

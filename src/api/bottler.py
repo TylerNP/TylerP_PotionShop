@@ -38,6 +38,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         connection.execute(sqlalchemy.text(sql_to_execute % green_pot_cnt))
         sql_to_execute = "UPDATE global_inventory SET num_green_ml = num_green_ml - %d"
         connection.execute(sqlalchemy.text(sql_to_execute % green_ml_used))
+    print("used %d mls" % green_ml_used)
 
     return potions_created
 
@@ -60,6 +61,9 @@ def get_bottle_plan():
         if new_green_pot > 0:
             potions.append( {"potion_type": [0,100,0,0], "quantity": new_green_pot} )
 
+
+    for potion in potions:
+        print(potion)
     return potions
 
 if __name__ == "__main__":

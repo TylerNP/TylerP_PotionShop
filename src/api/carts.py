@@ -114,6 +114,7 @@ def create_cart(new_cart: Customer):
         connection.execute(sqlalchemy.text(sql_to_execute % new_id))
         sql_to_execute = "UPDATE customers SET cart_id = '%d'"
         connection.execute(sqlalchemy.text(sql_to_execute % new_id))
+    print("cart_id: %d" % new_id)
 
     return [{"cart_id": new_id}]
 
