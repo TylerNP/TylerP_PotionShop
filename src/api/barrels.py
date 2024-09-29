@@ -56,7 +56,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     Process available barrels for sale and returns what barrels are bought
     """
 
-     #TO DO improve barrel planning logic
+    print(wholesale_catalog)
+    #TO DO improve barrel planning logic
 
     buy_amt = 0
     barrel_plan = []

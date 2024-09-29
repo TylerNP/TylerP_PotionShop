@@ -77,7 +77,7 @@ def get_bottle_plan():
                     if least == -1 or amt < least:
                         least = amt
             if least > 0:
-                potions.append({ "potion_type":potion.type, "quantity": least })
+                potions.append({ "potion_type": potion.type, "quantity": least })
 
     for potion in potions:
         print(potion)

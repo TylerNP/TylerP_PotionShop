@@ -129,11 +129,13 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ 
     Add item to cart tables and remove item from global inventory
     """
+    found = False
     with db.engine.begin() as connection:
         sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('%d', '%s', %d)"
         connection.execute(sqlalchemy.text(sql_to_execute % (cart_id, item_sku, cart_item.quantity)))
+        found = True
 
-    return { "quantity": cart_item.quantity }
+    return { "success": found }
 
 
 class CartCheckout(BaseModel):
