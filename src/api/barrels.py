@@ -67,11 +67,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         num_pots = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory")).scalar()
         potions = connection.execute(sqlalchemy.text("SELECT type FROM potions"))
         if num_pots < 10:
-            for potion in potions:
-                for barrel in wholesale_catalog:
-                    if barrel.potion_type == potion.type:
-                        desired_barrels.append(barrel)
-                        break
+            for barrel in wholesale_catalog:
+                print(barrel)
+                desired_barrels.append(barrel)
         for barrel in desired_barrels:
             buy_amt = gold//barrel.price
             if barrel.quantity < buy_amt:
