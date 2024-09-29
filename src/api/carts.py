@@ -86,6 +86,7 @@ def post_visits(visit_id: int, customers: list[Customer]):
             sql_to_execute = "INSERT INTO customers (visit_id, level, customer_name, customer_class) VALUES (%d, %d, '%s', '%s')"
             connection.execute(sqlalchemy.text(sql_to_execute % (visit_id, customer.level, customer.customer_name, customer.character_class)))
             visited = True
+            print(customer)
     print(customers)
 
     return [

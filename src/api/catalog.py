@@ -24,5 +24,5 @@ def get_catalog():
                     "price": potion.price,
                     "potion_type": potion.type
                 } )
-
+    print(potions_available)
     return potions_available
