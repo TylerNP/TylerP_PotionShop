@@ -79,7 +79,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             if buy_amt > 0:
                 barrel_plan.append( {"sku": barrel.sku, "quantity": buy_amt} )
             
-    for barrel in barrel_plan:
-        print(barrel)
+    print(barrel_plan)
     return barrel_plan
 
