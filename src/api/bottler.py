@@ -21,24 +21,31 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     """ 
     Update database values for ml and potions
     """
-    green_pot_cnt = 0
+    potion_count = 0
     green_ml_used = 0
+    red_ml_used = 0
+    blue_ml_used = 0
+    dark_ml_used = 0
+    ml_used = [0]*4
+    ml_types = ["red", "green", "blue", "dark"]
     sql_to_execute = ""
     potions_created = []
     with db.engine.begin() as connection:
         for potion in potions_delivered:
             if potion.quantity > 0:
-                green_pot_cnt += potion.quantity
-                green_ml_used += potion.potion_type[1]*potion.quantity
-                postgres_array = '{' + ','.join(map(str, potion.potion_type)) + '}'
-                sql_to_execute = "UPDATE potions SET quantity = quantity + %d WHERE type <@ '%s'::int[] AND type @> '%s'::int[]"
-                connection.execute(sqlalchemy.text(sql_to_execute % (potion.quantity, postgres_array, postgres_array)))
+                potion_count += potion.quantity
+                for index in range(len(potion.potion_type)):
+                    ml_used[index] += potion.potion_type[index]*potion.quantity
+                sql_to_execute = "UPDATE potions SET quantity = quantity + %d WHERE type[1] = %d AND type[2] = %d AND type[3] = %d AND type[4] = %d"
+                connection.execute(sqlalchemy.text(sql_to_execute % (potion.quantity, potion.potion_type[0], potion.potion_type[1], potion.potion_type[2], potion.potion_type[3])))
                 potions_created.append( {"potions_delivered": potion.potion_type, "id": order_id} )
+
         sql_to_execute = "UPDATE global_inventory SET num_potions = num_potions + %d"
-        connection.execute(sqlalchemy.text(sql_to_execute % green_pot_cnt))
-        sql_to_execute = "UPDATE global_inventory SET num_green_ml = num_green_ml - %d"
-        connection.execute(sqlalchemy.text(sql_to_execute % green_ml_used))
-    print("used %d mls" % green_ml_used)
+        connection.execute(sqlalchemy.text(sql_to_execute % potion_count))
+        for index in range(len(ml_types)):
+            sql_to_execute = "UPDATE global_inventory SET num_%s_ml = num_%s_ml - %d"
+            connection.execute(sqlalchemy.text(sql_to_execute % (ml_types[index], ml_types[index], ml_used[index])))
+    print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
 
     return potions_created
 
@@ -53,14 +60,24 @@ def get_bottle_plan():
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
     # Initial logic: bottle all barrels into green potions.
-    new_green_pot = 0
     potions = []
+    ml_available = [0]*4
+    ml_types = ["red", "green", "blue", "dark"]
     with db.engine.begin() as connection: 
-        green_ml_usable = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        new_green_pot = green_ml_usable//100
-        if new_green_pot > 0:
-            potions.append( {"potion_type": [0,100,0,0], "quantity": new_green_pot} )
-
+        for index in range(len(ml_types)):
+            sql_to_execute = "SELECT num_%s_ml FROM global_inventory"
+            ml_available[index] = connection.execute(sqlalchemy.text(sql_to_execute % ml_types[index])).scalar()
+        sql_to_execute = "SELECT type, quantity FROM potions"
+        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute))
+        for potion in potions_brewable:
+            least = -1
+            for index in range(len(potion.type)):
+                if potion.type[index] > 0:
+                    amt = ml_available[index] // potion.type[index]
+                    if least == -1 or amt < least:
+                        least = amt
+            if least > 0:
+                potions.append({ "potion_type":potion.type, "quantity": least })
 
     for potion in potions:
         print(potion)
