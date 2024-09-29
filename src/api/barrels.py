@@ -45,7 +45,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
             sql_to_execute = "UPDATE global_inventory SET num_%s_ml = num_%s_ml + %d"
             connection.execute(sqlalchemy.text(sql_to_execute % (ml_type[index], ml_type[index], ml_bought[index])))
 
-    for index in range(len(barrels_sent)):
+    for index in range(len(ml_type)):
         print("Bought %d %s ml" % (ml_bought[index], ml_type[index]))
     return barrels_sent
 
