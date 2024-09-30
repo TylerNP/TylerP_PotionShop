@@ -35,7 +35,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
         count += barrel.quantity
         gold_cost += barrel.quantity*barrel.price
         for index in range(len(ml_type)):
-            ml_bought[index] += barrel.ml_per_barrel*barrel.quantity*barrel.potion_type[index]//100
+            ml_bought[index] += barrel.ml_per_barrel*barrel.quantity*barrel.potion_type[index]
         barrels_sent.append( {"barrels delivered": barrel, "order_id": order_id} )
         
     with db.engine.begin() as connection: 
@@ -66,7 +66,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection: 
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
         num_pots = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory")).scalar()
-        potions = connection.execute(sqlalchemy.text("SELECT type FROM potions"))
         if num_pots < 10:
             for barrel in wholesale_catalog:
                 print(barrel)

@@ -22,10 +22,6 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     Update database values for ml and potions
     """
     potion_count = 0
-    green_ml_used = 0
-    red_ml_used = 0
-    blue_ml_used = 0
-    dark_ml_used = 0
     ml_used = [0]*4
     ml_types = ["red", "green", "blue", "dark"]
     sql_to_execute = ""
