@@ -17,13 +17,14 @@ def get_inventory():
     """
     Returns quantities of items in global inventory 
     """
-
+    ml_types = ["red", "green", "blue", "dark"]
     gold = 0
     ml_in_barrels = 0
     number_of_potions = 0
     with db.engine.begin() as connection:
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        ml_in_barrels = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
+        for i in range(len(ml_types)):
+            ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_%s_ml FROM global_inventory" % ml_types[i])).scalar()
         number_of_potions = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory")).scalar()
     
     return {"number_of_potions": number_of_potions, "ml_in_barrels": ml_in_barrels, "gold": gold}
