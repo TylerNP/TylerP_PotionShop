@@ -39,8 +39,9 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         sql_to_execute = "UPDATE global_inventory SET num_potions = num_potions + %d"
         connection.execute(sqlalchemy.text(sql_to_execute % potion_count))
         for index in range(len(ml_types)):
-            sql_to_execute = "UPDATE global_inventory SET num_%s_ml = num_%s_ml - %d"
-            connection.execute(sqlalchemy.text(sql_to_execute % (ml_types[index], ml_types[index], ml_used[index])))
+            if ml_used[index] > 0:
+                sql_to_execute = "UPDATE global_inventory SET num_%s_ml = num_%s_ml - %d"
+                connection.execute(sqlalchemy.text(sql_to_execute % (ml_types[index], ml_types[index], ml_used[index])))
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
 
     return potions_created
