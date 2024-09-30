@@ -105,10 +105,9 @@ def create_cart(new_cart: Customer):
     """
     Issue a unique id for carts and new table for cart inventory 
     """
-
+    new_id = 0
     with db.engine.begin() as connection: 
         curr_ids = connection.execute(sqlalchemy.text("SELECT cart_id FROM carts"))
-        new_id = 0
         for ids in curr_ids:
             if int(ids.cart_id) == new_id:
                 new_id += 1
