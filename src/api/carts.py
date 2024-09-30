@@ -120,7 +120,7 @@ def create_cart(new_cart: Customer):
         connection.execute(sqlalchemy.text(sql_to_execute % (new_id, new_cart.customer_name, new_cart.character_class, new_cart.level)))
     print("cart_id: %d" % new_id)
 
-    return [{"cart_id": "%s" % new_id}]
+    return {"cart_id": "%s" % new_id}
 
 
 class CartItem(BaseModel):
