@@ -72,7 +72,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         if num_pots == 1:
             return barrel_plan
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        specific_pots = connection.execute(sqlalchemy.text("SELECT quantity FROM potions WHERE quantity < 10"))
+        specific_pots = connection.execute(sqlalchemy.text("SELECT quantity, type FROM potions WHERE quantity < 10"))
         for pots in specific_pots:
             for index in range(len(ml_types)):
                 ml_needed[index] += pots.type[index]*(10-pots.quantity)
