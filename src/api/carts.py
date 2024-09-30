@@ -114,7 +114,7 @@ def create_cart(new_cart: Customer):
             else:
                 break
 
-        sql_to_execute = "INSERT INTO carts (cart_id) VALUES (%d)"
+        sql_to_execute = "INSERT INTO carts (cart_id) VALUES ('%d')"
         connection.execute(sqlalchemy.text(sql_to_execute % new_id))
         sql_to_execute = "UPDATE customers SET cart_id = '%d' WHERE (customer_name = '%s' AND customer_class = '%s' AND level = %d)"
         connection.execute(sqlalchemy.text(sql_to_execute % (new_id, new_cart.customer_name, new_cart.character_class, new_cart.level)))
@@ -134,9 +134,9 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """
     bought = False
     with db.engine.begin() as connection:
-        sql_to_execute = "SELECT quantity FROM potions WHERE sku = %s LIMIT 1"
-        amt = connection.execute(sqlalchemy.text(sql_to_execute % item_sku))
-        if cart_item <= amt:
+        sql_to_execute = "SELECT quantity FROM potions WHERE sku = '%s' LIMIT 1"
+        amt = connection.execute(sqlalchemy.text(sql_to_execute % item_sku)).scalar()
+        if cart_item.quantity <= amt:
             sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('%d', '%s', %d)"
             connection.execute(sqlalchemy.text(sql_to_execute % (cart_id, item_sku, cart_item.quantity)))
             bought = True
