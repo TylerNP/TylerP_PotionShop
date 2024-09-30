@@ -80,11 +80,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             for index in range(len(ml_types)):
                 if barrel.potion_type[index] == 1 and ml_needed[index] > 0:
                     desired_barrels.append(barrel)
-                    barrel_efficiency.append(barrel.ml_per_barrel//barrel.price)
+                    barrel_efficiency.append((barrel.ml_per_barrel // barrel.price))
                     break
-    sorted_barrels = [barrel for _, barrel in sorted(zip(desired_barrels,barrel_efficiency), key = lambda pair:pair[0])]
+    sorted_barrels = [barrel for barrel_efficiency, barrel in sorted(zip(barrel_efficiency, desired_barrels), key = lambda pair:pair[0])]
     for barrel in sorted_barrels:
-        buy_amt = gold//barrel.price
         if barrel.quantity < buy_amt:
             buy_amt = barrel.quantity
         gold -= buy_amt*barrel.price
