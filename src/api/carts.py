@@ -108,7 +108,7 @@ def create_cart(new_cart: Customer):
 
     with db.engine.begin() as connection: 
         curr_ids = connection.execute(sqlalchemy.text("SELECT cart_id FROM carts"))
-        new_id = 0
+        new_id = 1
         for ids in curr_ids:
             if int(ids.cart_id) == new_id:
                 new_id += 1
@@ -133,13 +133,16 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ 
     Add item to cart tables and remove item from global inventory
     """
-    found = False
+    bought = False
     with db.engine.begin() as connection:
-        sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('%d', '%s', %d)"
-        connection.execute(sqlalchemy.text(sql_to_execute % (cart_id, item_sku, cart_item.quantity)))
-        found = True
+        sql_to_execute = "SELECT quantity FROM potions WHERE sku = %s LIMIT 1"
+        amt = connection.execute(sqlalchemy.text(sql_to_execute % item_sku))
+        if cart_item <= amt:
+            sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('%d', '%s', %d)"
+            connection.execute(sqlalchemy.text(sql_to_execute % (cart_id, item_sku, cart_item.quantity)))
+            bought = True
 
-    return { "success": found }
+    return { "success": bought }
 
 
 class CartCheckout(BaseModel):

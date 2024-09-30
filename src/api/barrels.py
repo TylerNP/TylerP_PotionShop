@@ -78,7 +78,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 ml_needed[index] += pots.type[index]*(10-pots.quantity)
         for barrel in wholesale_catalog:
             for index in range(len(ml_types)):
-                if barrel.potion_type[index] == 1 and ml_needed[type] > 0:
+                if barrel.potion_type[index] == 1 and ml_needed[index] > 0:
                     desired_barrels.append(barrel)
                     barrel_efficiency.append(barrel.ml_per_barrel//barrel.price)
                     break
