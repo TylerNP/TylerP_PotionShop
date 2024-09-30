@@ -62,20 +62,34 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     buy_amt = 0
     barrel_plan = []
     desired_barrels = []
+    barrel_efficiency = []
+    ml_types = ["red", "green", "blue", "dark"]
+    ml_needed = [0]*4
+    gold = 0
 
     with db.engine.begin() as connection: 
+        num_pots = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory WHERE num_potions > 50")).scalar()
+        if num_pots == 1:
+            return barrel_plan
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        num_pots = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory")).scalar()
-        if num_pots < 10:
-            for barrel in wholesale_catalog:
-                desired_barrels.append(barrel)
-        for barrel in desired_barrels:
-            buy_amt = gold//barrel.price
-            if barrel.quantity < buy_amt:
-                buy_amt = barrel.quantity
-            gold -= buy_amt*barrel.price
-            if buy_amt > 0:
-                barrel_plan.append( {"sku": barrel.sku, "quantity": buy_amt} )
+        specific_pots = connection.execute(sqlalchemy.text("SELECT quantity FROM potions WHERE quantity < 10"))
+        for pots in specific_pots:
+            for index in range(len(ml_types)):
+                ml_needed[index] += pots.type[index]*(10-pots.quantity)
+        for barrel in wholesale_catalog:
+            for index in range(len(ml_types)):
+                if barrel.potion_type[index] == 1 and ml_needed[type] > 0:
+                    desired_barrels.append(barrel)
+                    barrel_efficiency.append(barrel.ml_per_barrel//barrel.price)
+                    break
+    sorted_barrels = [barrel for _, barrel in sorted(zip(desired_barrels,barrel_efficiency), key = lambda pair:pair[0])]
+    for barrel in sorted_barrels:
+        buy_amt = gold//barrel.price
+        if barrel.quantity < buy_amt:
+            buy_amt = barrel.quantity
+        gold -= buy_amt*barrel.price
+        if buy_amt > 0:
+            barrel_plan.append( {"sku": barrel.sku, "quantity": buy_amt} )
             
     print(barrel_plan)
     return barrel_plan
