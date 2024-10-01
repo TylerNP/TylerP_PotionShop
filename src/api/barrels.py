@@ -59,34 +59,34 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
     #TO DO improve barrel planning logic
 
-    buy_amt = 0
     barrel_plan = []
     desired_barrels = []
     barrel_efficiency = []
     ml_types = ["red", "green", "blue", "dark"]
     ml_needed = [0]*4
     gold = 0
+    buy_amt = 0
 
     with db.engine.begin() as connection: 
         num_pots = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory WHERE num_potions > 50")).scalar()
         if num_pots == 1:
             return barrel_plan
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        specific_pots = connection.execute(sqlalchemy.text("SELECT quantity, type FROM potions WHERE quantity < 10"))
+        specific_pots = connection.execute(sqlalchemy.text("SELECT quantity, type FROM potions WHERE quantity < 10 ORDER BY quantity ASC"))
         for pots in specific_pots:
             for index in range(len(ml_types)):
                 ml_needed[index] += pots.type[index]*(10-pots.quantity)
         for barrel in wholesale_catalog:
-            for index in range(len(ml_types)):
-                if barrel.potion_type[index] == 1 and ml_needed[index] > 0:
-                    desired_barrels.append(barrel)
-                    barrel_efficiency.append((barrel.ml_per_barrel // barrel.price))
-                    break
+            if ml_needed[barrel.potion_type.index(1)] > 0:
+                desired_barrels.append(barrel)
+                barrel_efficiency.append((barrel.ml_per_barrel // barrel.price))
     sorted_barrels = [barrel for barrel_efficiency, barrel in sorted(zip(barrel_efficiency, desired_barrels), key = lambda pair:pair[0])]
     for barrel in sorted_barrels:
+        buy_amt = gold // barrel.price
         if barrel.quantity < buy_amt:
             buy_amt = barrel.quantity
         gold -= buy_amt*barrel.price
+        print(buy_amt)
         if buy_amt > 0:
             barrel_plan.append( {"sku": barrel.sku, "quantity": buy_amt} )
             
