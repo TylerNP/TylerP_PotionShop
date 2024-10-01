@@ -120,7 +120,7 @@ def create_cart(new_cart: Customer):
         connection.execute(sqlalchemy.text(sql_to_execute % (new_id, new_cart.customer_name, new_cart.character_class, new_cart.level)))
     print("cart_id: %d" % new_id)
 
-    return {"cart_id": "%s" % new_id}
+    return {"cart_id": new_id}
 
 
 class CartItem(BaseModel):
@@ -137,7 +137,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
         sql_to_execute = "SELECT quantity FROM potions WHERE sku = '%s' LIMIT 1"
         amt = connection.execute(sqlalchemy.text(sql_to_execute % item_sku)).scalar()
         if cart_item.quantity <= amt:
-            sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES ('%d', '%s', %d)"
+            sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES (%d, '%s', %d)"
             connection.execute(sqlalchemy.text(sql_to_execute % (cart_id, item_sku, cart_item.quantity)))
             bought = True
 
@@ -155,7 +155,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     gold_total = 0
     total_potions = 0
     with db.engine.begin() as connection: 
-        sql_to_execute = "SELECT potion_quantity, sku FROM cart_items WHERE cart_id = '%s'"
+        sql_to_execute = "SELECT potion_quantity, sku FROM cart_items WHERE cart_id = %d"
         potions = connection.execute(sqlalchemy.text(sql_to_execute % cart_id))
         for item in potions:
             sql_to_execute = "SELECT price FROM potions WHERE sku = '%s'"
@@ -167,7 +167,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             sql_to_execute = "UPDATE global_inventory SET num_potions = num_potions - %d"
             connection.execute(sqlalchemy.text(sql_to_execute % item.potion_quantity))
 
-        sql_to_execute = "DELETE FROM carts WHERE cart_id = '%d'"
+        sql_to_execute = "DELETE FROM carts WHERE cart_id = %d"
         connection.execute(sqlalchemy.text(sql_to_execute % cart_id))
         sql_to_execute = "UPDATE global_inventory SET gold = gold + %d"
         connection.execute(sqlalchemy.text(sql_to_execute % gold_total))
