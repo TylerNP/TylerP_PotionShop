@@ -64,7 +64,7 @@ def get_bottle_plan():
         for index in range(len(ml_types)):
             sql_to_execute = "SELECT num_%s_ml FROM global_inventory"
             ml_available[index] = connection.execute(sqlalchemy.text(sql_to_execute % ml_types[index])).scalar()
-        sql_to_execute = "SELECT type, quantity FROM potions"
+        sql_to_execute = "SELECT type, quantity FROM potions ORDER BY quantity ASC"
         potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute))
         for potion in potions_brewable:
             least = -1
