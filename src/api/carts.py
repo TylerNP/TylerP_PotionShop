@@ -107,14 +107,17 @@ def create_cart(new_cart: Customer):
     """
     new_id = 0
     with db.engine.begin() as connection: 
-        curr_ids = connection.execute(sqlalchemy.text("SELECT cart_id FROM carts"))
-        for ids in curr_ids:
-            if int(ids.cart_id) == new_id:
+        biggest_id = connection.execute(sqlalchemy.text("SELECT cart_id FROM carts ORDER BY cart_id DESC LIMIT 1"))
+        curr_ids = connection.execute(sqlalchemy.text("SELECT cart_id FROM carts ORDER BY cart_id ASC"))
+        if biggest_id == 1 and biggest_id.cart_id == len(curr_ids.all())-1: # No missing ids inbetween 
+            new_id = len(curr_ids.all())
+        else:
+            for ids in curr_ids:
+                if ids.cart_id != new_id:
+                    break
                 new_id += 1
-            else:
-                break
 
-        sql_to_execute = "INSERT INTO carts (cart_id) VALUES ('%d')"
+        sql_to_execute = "INSERT INTO carts (cart_id) VALUES (%d)"
         connection.execute(sqlalchemy.text(sql_to_execute % new_id))
         sql_to_execute = "UPDATE customers SET cart_id = '%d' WHERE (customer_name = '%s' AND customer_class = '%s' AND level = %d)"
         connection.execute(sqlalchemy.text(sql_to_execute % (new_id, new_cart.customer_name, new_cart.character_class, new_cart.level)))
