@@ -107,7 +107,7 @@ def create_cart(new_cart: Customer):
     """
     new_id = 0
     with db.engine.begin() as connection: 
-        new_ids = connection.execute(sqlalchemy.text("INSERT INTO carts DEFAULT VALUES RETURNING id"))
+        new_id = connection.execute(sqlalchemy.text("INSERT INTO carts DEFAULT VALUES RETURNING id")).scalar()
         sql_to_execute = "UPDATE customers SET cart_id = '%d' WHERE (customer_name = '%s' AND customer_class = '%s' AND level = %d)"
         connection.execute(sqlalchemy.text(sql_to_execute % (new_id, new_cart.customer_name, new_cart.character_class, new_cart.level)))
     print("cart_id: %d" % new_id)
@@ -159,7 +159,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             sql_to_execute = "UPDATE global_inventory SET num_potions = num_potions - %d"
             connection.execute(sqlalchemy.text(sql_to_execute % item.potion_quantity))
 
-        sql_to_execute = "DELETE FROM carts WHERE cart_id = %d"
+        sql_to_execute = "DELETE FROM carts WHERE id = %d"
         connection.execute(sqlalchemy.text(sql_to_execute % cart_id))
         sql_to_execute = "UPDATE global_inventory SET gold = gold + %d"
         connection.execute(sqlalchemy.text(sql_to_execute % gold_total))
