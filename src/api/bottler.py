@@ -57,27 +57,52 @@ def get_bottle_plan():
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
     # Initial logic: bottle all barrels into green potions.
-    potions = []
     ml_available = [0]*4
     ml_types = ["red", "green", "blue", "dark"]
+    unique_potions = []
     with db.engine.begin() as connection: 
         for index in range(len(ml_types)):
             sql_to_execute = "SELECT num_%s_ml FROM global_inventory"
             ml_available[index] = connection.execute(sqlalchemy.text(sql_to_execute % ml_types[index])).scalar()
-        sql_to_execute = "SELECT type, quantity FROM potions ORDER BY quantity ASC"
-        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute))
-        for potion in potions_brewable:
-            least = -1
-            for index in range(len(potion.type)):
-                if potion.type[index] > 0:
-                    amt = ml_available[index] // potion.type[index]
-                    if least == -1 or amt < least:
-                        least = amt
-            if least > 0:
-                potions.append({ "potion_type": potion.type, "quantity": least })
+        sql_to_execute = "SELECT COUNT(1) FROM potions"
+        potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
+        potion_per_capacity = 50
+        capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_inventory")).scalar()
+        potion_capacity = potion_per_capacity * capacity
+        potion_threshold = potion_capacity // potions_available
+        sql_to_execute = "SELECT type, quantity FROM potions WHERE quantity < %d ORDER BY quantity ASC"
+        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % potion_threshold))
+        unique_potions = [ potion.type for potion in potions_brewable]
 
-    print(potions)
-    return potions
+    unique_potion_counts = [0]*len(unique_potions)
+    done = False
+    while unique_potions and not done:
+        potion_loop_count = 0
+        for potion in unique_potions:
+            brewed = True
+            ml_leftover = [0]*4
+            for index in range(len(potion)):
+                ml_leftover[index]= ml_available[index] - potion[index]
+                if ml_leftover[index] < 0:
+                    brewed = False
+                    break
+
+            if brewed:
+                ml_available = [ml for ml in ml_leftover]
+                unique_potion_counts[unique_potions.index(potion)] += 1
+            else:
+                potion_loop_count += 1
+                full_potion_loop = len(unique_potions)
+                if potion_loop_count == full_potion_loop:
+                    done = True
+                    break
+
+    plan = []
+    for i in range(len(unique_potions)):
+        if unique_potion_counts[i] == 0:
+            continue
+        plan.append( {"potion_type": unique_potions[i], "quantity": unique_potion_counts[i]} )
+    return plan
 
 if __name__ == "__main__":
     print(get_bottle_plan())
