@@ -63,20 +63,42 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     ml_types = ["red", "green", "blue", "dark"]
     num_types = len(ml_types)
     ml_needed = [0]*num_types
+    ml_available = [0]*num_types
+    ml_space = [0]*num_types
     gold_threshold = 0
     usable_gold = 0
 
     with db.engine.begin() as connection: 
-        #Check if too much potions
-        potion_per_capacity = 50
-        capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_inventory")).scalar()
-        potion_capacity = potion_per_capacity * capacity
-        sql_to_execute = "SELECT num_potions FROM global_inventory WHERE num_potions >= %d"
-        num_pots = connection.execute(sqlalchemy.text(sql_to_execute % (potion_capacity))).scalar()
-        if num_pots == 1:
-            return plan
-        usable_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
+        #Check to determine if can purchase
+        query = connection.execute(sqlalchemy.text("SELECT ml_capacity, potion_capacity, gold FROM global_inventory"))
+        for result in query:
+            potion_capacity_units = result.potion_capacity
+            ml_capacity_units = result.ml_capacity
+            usable_gold = result.gold
+
         usable_gold = usable_gold-gold_threshold
+        ml_per_capacity = 10000
+        ml_capacity = ml_capacity_units * ml_per_capacity
+        total_ml = 0
+        for index in range(len(ml_types)):
+            sql_to_execute = "SELECT num_%s_ml FROM global_inventory"
+            ml_stored = connection.execute(sqlalchemy.text(sql_to_execute % ml_types[index])).scalar()
+            ml_available[index] = ml_stored
+            total_ml += ml_stored
+        
+        if (total_ml>=ml_capacity):
+            return plan
+
+        #determine how much space is available
+        ml_threshold = (ml_capacity-total_ml)//num_types
+        for index in range(len(ml_types)):
+            ml_space_remain = ml_threshold-ml_available[index]
+            if ml_space_remain > 0:
+                ml_space[index] = ml_space_remain  
+        
+        #ml Needed For Immediate Brewing
+        potion_per_capacity = 50
+        potion_capacity = potion_per_capacity * potion_capacity_units
         sql_to_execute = "SELECT COUNT(1) FROM potions"
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         potion_threshold = potion_capacity // potions_available
@@ -113,14 +135,55 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     for barrel in sorted_barrels:
         barrel_types[barrel.potion_type.index(barrel_type)].append(barrel)
 
-    #Find Most Needed Barrel Type
+    #Buy From Most Needed Barrel Type To Least
     type_index = ml_needed.index(max(ml_needed))
     list_of_index = [0]*num_types
     buy_count = []
     unique_barrels = []
     buy_amt = 0
     done = False
-    
+
+    #Determine If More ml Can Be Purchased For Later use
+    """
+    ml_needed = [ ml_needed[index] if ml_needed[index] < ml_space[index] else ml_space[index] for index in range(len(ml_types))]
+    ml_can_buy = [1]*4
+    count = 0
+    while True:
+        if count > 100:
+            break
+        count += 1
+        print(ml_can_buy)
+        if not any(ml_can_buy):
+            break
+        if ml_ratio_copy[type_index] <= 0 or ml_can_buy[type_index] == 0:
+            type_index = (type_index+1) % num_types
+            continue
+        if list_of_index[type_index] == len(barrel_types[type_index]):
+            ml_can_buy[type_index] = 0
+            continue
+        buy_amt = 1
+        barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
+        if (usable_gold >= barrel_to_buy.price) and (ml_needed[type_index] >= barrel_to_buy.ml_per_barrel):
+            buy_amt = 1
+            usable_gold = usable_gold-barrel_to_buy.price
+            ml_needed[type_index] = ml_needed[type_index] - barrel_to_buy.ml_per_barrel
+            if barrel_to_buy not in unique_barrels:
+                unique_barrels.append(barrel_to_buy)
+                buy_count.append(buy_amt)
+            else:
+                buy_count[unique_barrels.index(barrel_to_buy)] += buy_amt
+            ml_ratio_copy[type_index] = ml_ratio_copy[type_index] - round(barrel_to_buy.ml_per_barrel/min)
+            cycle_complete = True
+            for ml in ml_ratio_copy:
+                if ml > 0:
+                    cycle_complete = False
+                    break
+            if cycle_complete:
+                for i in range(len(ml_ratio)):
+                    ml_ratio_copy[i] += ml_ratio[i]
+        type_index = (type_index+1) % num_types
+
+    """
     #Balance Barrel Purchases with Ratio and buying from each color first
     while not done:
         if ml_ratio_copy[type_index] <= 0:
