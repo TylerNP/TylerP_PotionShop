@@ -58,6 +58,7 @@ def get_bottle_plan():
 
     # Initial logic: bottle all barrels into green potions.
     ml_available = [0]*4
+    ml_max = [0]*4
     ml_types = ["red", "green", "blue", "dark"]
     unique_potions = []
     potion_brew_amount = []
@@ -69,39 +70,52 @@ def get_bottle_plan():
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         potion_per_capacity = 50
         capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_inventory")).scalar()
-        potion_capacity = 50
+        potion_capacity = potion_per_capacity * capacity
         potion_threshold = potion_capacity // potions_available
-        sql_to_execute = "SELECT type, quantity FROM potions WHERE quantity < %d ORDER BY quantity ASC, price DESC"
-        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % potion_threshold))
+        sql_to_execute = "SELECT type, quantity FROM potions WHERE quantity < %d AND type[1] <= %d AND type[2] <= %d AND type[3] <= %d AND type[4] <= %d ORDER BY quantity ASC, price DESC"
+        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % (potion_threshold,ml_available[0], ml_available[1], ml_available[2], ml_available[3] )))
         for potion in potions_brewable:
             unique_potions.append(potion.type)
             desired_potion_brew_count = potion_threshold-potion.quantity
             potion_brew_amount.append(desired_potion_brew_count)
+            for index in range(len(ml_max)):
+                ml_max[index] += potion.type[index]*desired_potion_brew_count
 
     min = potion_brew_amount[-1]
-    potion_brew_ratio = [ round(amount/min) for amount in potion_brew_amount ]
+    potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
+    brew_ratio_copy = potion_brew_ratio.copy()
+    ml_usable = [ ml_available[index] if ml_available[index] < ml_max[index] else ml_max[index] for index in range(len(ml_max))]
     unique_potion_counts = [0]*len(unique_potions)
-    done = False
-    while unique_potions and not done:
-        potion_loop_count = 0
-        for potion in unique_potions:
-            brewed = True
-            ml_leftover = [0]*4
-            for index in range(len(potion)):
-                ml_leftover[index]= ml_available[index] - potion[index]
-                if ml_leftover[index] < 0:
-                    brewed = False
-                    break
-
-            if brewed:
-                ml_available = [ml for ml in ml_leftover]
-                unique_potion_counts[unique_potions.index(potion)] += 1
-            else:
-                potion_loop_count += 1
-                full_potion_loop = len(unique_potions)
-                if potion_loop_count == full_potion_loop:
-                    done = True
-                    break
+    potion_index = 0
+    potion_count = len(unique_potions)
+    potion_unavailable = [0]*potion_count
+    print(potion_brew_amount)
+    while True:
+        if all (potion_unavailable):
+            break
+        if not any(brew_ratio_copy):
+            brew_ratio_copy = potion_brew_ratio.copy()
+        if brew_ratio_copy[potion_index] == 0 or potion_unavailable[potion_index] == 1:
+            potion_index = (potion_index+1)%len(unique_potions)
+            continue
+        brewed = True
+        ml_leftover = [0]*4
+        for index in range(len(ml_usable)):
+            ml_leftover[index]= ml_usable[index] - unique_potions[potion_index][index]
+            if ml_leftover[index] < 0:
+                brewed = False
+                break
+        if not brewed:
+            potion_unavailable[potion_index] = 1
+            potion_brew_ratio[potion_index] = 0
+            brew_ratio_copy[potion_index] = 0
+            continue
+        ml_usable = [ml for ml in ml_leftover]
+        unique_potion_counts[potion_index] += 1
+        brew_ratio_copy[potion_index] -= 1
+        if potion_brew_amount[potion_index] == unique_potion_counts[potion_index]:
+            potion_unavailable[potion_index] = 1
+        potion_index = (potion_index+1)%len(unique_potions)
 
     plan = []
     for i in range(len(unique_potions)):
