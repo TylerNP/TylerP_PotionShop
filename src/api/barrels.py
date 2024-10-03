@@ -136,7 +136,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         if barrel_types[index]:
             num_types_buyable = num_types_buyable + 1
             ml_can_buy[index] = 1
-
     if num_types_buyable == 0:
         return []
     ml_threshold = (ml_capacity-total_ml)//num_types_buyable
@@ -147,18 +146,21 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_space[index] = ml_space_remain  
         else:
             ml_can_buy[index] = 0
+            ml_ratio[index] = 0
+            ml_ratio_copy[index] = 0
             num_types_buyable = num_types_buyable - 1
             recalculate = True
         
     # Better Estimate If Necessay
+    if num_types_buyable == 0:
+        return []
     if recalculate:
         ml_threshold = (ml_capacity-total_ml)//num_types_buyable
         for index in range(len(ml_types)):
             ml_space_remain = ml_threshold-ml_available[index]
             if ml_can_buy[index] == 1:
                 ml_space[index] = ml_space_remain
-
-    # Reduce Size to Space Left
+    # Reduce Size to Available Space
     for index in range(len(ml_types)):
         if ml_needed[index] > ml_space[index]:
             ml_needed[index] = ml_space[index]
@@ -170,102 +172,47 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     unique_barrels = []
     buy_amt = 0
 
+    print(ml_needed)
     #Determine If More ml Can Be Purchased For Later use
     count = 0
-    loop_count = 0
-    full_loop = 4
     while True:
-        count += 1
-        print(f"count {count}: " + ''.join(map(str,ml_can_buy)))
         if not any(ml_can_buy):
             break
         if ml_ratio_copy[type_index] <= 0 or ml_can_buy[type_index] == 0:
             type_index = (type_index+1) % num_types
-            if ml_can_buy[type_index] == 0:
-                loop_count += 1
-                if loop_count == full_loop:
-                    break
             continue
-        if list_of_index[type_index] == len(barrel_types[type_index]):
+        if list_of_index[type_index] >= len(barrel_types[type_index]):
             ml_can_buy[type_index] = 0
             ml_ratio_copy[type_index] = 0
             ml_ratio[type_index] = 0
             continue
         buy_amt = 1
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
-        print(barrel_to_buy)
-        print(ml_can_buy)
-        print(ml_ratio_copy)
-        if (usable_gold >= barrel_to_buy.price) and (ml_needed[type_index] >= barrel_to_buy.ml_per_barrel):
-            buy_amt = 1
-            usable_gold = usable_gold-barrel_to_buy.price
-            ml_needed[type_index] = ml_needed[type_index] - barrel_to_buy.ml_per_barrel
-            if barrel_to_buy not in unique_barrels:
-                unique_barrels.append(barrel_to_buy)
-                buy_count.append(buy_amt)
-            else:
-                buy_count[unique_barrels.index(barrel_to_buy)] += buy_amt
-            ml_ratio_copy[type_index] = ml_ratio_copy[type_index] - round(barrel_to_buy.ml_per_barrel/min)
-            cycle_complete = True
-            for ml in ml_ratio_copy:
-                if ml > 0:
-                    cycle_complete = False
-                    break
-            if cycle_complete:
-                for i in range(len(ml_ratio)):
-                    ml_ratio_copy[i] += ml_ratio[i]
-            type_index = (type_index+1) % num_types
-        else:
+        if (usable_gold < barrel_to_buy.price) or (ml_needed[type_index] < barrel_to_buy.ml_per_barrel):
             list_of_index[type_index] = list_of_index[type_index] + 1
-        #print(unique_barrels)
-
-    """
-    #Balance Barrel Purchases with Ratio and buying from each color first
-    while not done:
-        if ml_ratio_copy[type_index] <= 0:
-            type_index = (type_index+1) % num_types
-            continue
-        done = True
-
-        #Skip Barrel Types That Are Sold Out
-        loop_count = 0
-        full_loop = 4
-        for _ in range(num_types):
-            if list_of_index[type_index] < len(barrel_types[type_index]):
-                done = False
-                break
-            type_index = (type_index+1) % num_types
-            loop_count += 1
-        if loop_count == full_loop:
-            break
-
-        #Cycle Type of Barrels Bought
+            continue   
         buy_amt = 1
-        barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
-        if (usable_gold-barrel_to_buy.price) < 0:
-            list_of_index[type_index] += 1
+        usable_gold = usable_gold-barrel_to_buy.price
+        ml_needed[type_index] = ml_needed[type_index] - barrel_to_buy.ml_per_barrel
+        if barrel_to_buy not in unique_barrels:
+            unique_barrels.append(barrel_to_buy)
+            buy_count.append(buy_amt)
         else:
-            buy_amt = 1
-            usable_gold = usable_gold-barrel_to_buy.price
-            if barrel_to_buy not in unique_barrels:
-                unique_barrels.append(barrel_to_buy)
-                buy_count.append(buy_amt)
-            else:
-                buy_count[unique_barrels.index(barrel_to_buy)] += buy_amt
-            ml_ratio_copy[type_index] -= round(barrel_to_buy.ml_per_barrel/min)
-            cycle_complete = True
-            for ml in ml_ratio_copy:
-                if ml > 0:
-                    cycle_complete = False
-                    break
-            if cycle_complete:
-                for i in range(len(ml_ratio)):
-                    ml_ratio_copy[i] += ml_ratio[i]
-            if buy_count[unique_barrels.index(barrel_to_buy)] == barrel_to_buy.quantity:
-                list_of_index[type_index] += 1
+            new_quantity = buy_count[unique_barrels.index(barrel_to_buy)] + buy_amt
+            if new_quantity > barrel_to_buy.quantity:
+                list_of_index[type_index] = list_of_index[type_index] + 1
                 continue
-            type_index = (type_index+1)%num_types
-        """        
+            buy_count[unique_barrels.index(barrel_to_buy)] = new_quantity
+        ml_ratio_copy[type_index] = ml_ratio_copy[type_index] - round(barrel_to_buy.ml_per_barrel/min)
+        cycle_complete = True
+        for ml in ml_ratio_copy:
+            if ml > 0:
+                cycle_complete = False
+                break
+        if cycle_complete:
+            for i in range(len(ml_ratio)):
+                ml_ratio_copy[i] = ml_ratio_copy[i] + ml_ratio[i]
+        type_index = (type_index+1) % num_types 
     
     for i in range(len(unique_barrels)):
         plan.append( {"sku":unique_barrels[i].sku, "quantity": buy_count[i]} )
