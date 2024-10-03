@@ -168,7 +168,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     count = 0
     while True:
         count += 1
-        #print(count)
+        print(count)
         print(ml_ratio_copy)
         if not any(ml_can_buy):
             break
