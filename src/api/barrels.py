@@ -67,6 +67,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     ml_space = [0]*num_types
     gold_threshold = 0
     usable_gold = 0
+    ml_capacity = 0
 
     with db.engine.begin() as connection: 
         #Check to determine if can purchase
@@ -88,13 +89,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         
         if (total_ml>=ml_capacity):
             return plan
-
-        #determine how much space is available
-        ml_threshold = (ml_capacity-total_ml)//num_types
-        for index in range(len(ml_types)):
-            ml_space_remain = ml_threshold-ml_available[index]
-            if ml_space_remain > 0:
-                ml_space[index] = ml_space_remain  
         
         #ml Needed For Immediate Brewing
         potion_per_capacity = 50
@@ -115,7 +109,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         if  (value < min and value != 0) or min == 0:
             min = value
         if value != 0:
-            ml_count += 1
+            ml_count = ml_count + 1
     ml_ratio = [ round(ml/min) for ml in ml_needed]
     ml_ratio_copy = ml_ratio.copy()
 
@@ -129,11 +123,42 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         desired_barrels.append(barrel)
         barrel_ml_per_gold.append(barrel.ml_per_barrel//barrel.price)
     sorted_barrels = [barrel for _, barrel in sorted(zip(barrel_ml_per_gold, desired_barrels), key = lambda pair:pair[0], reverse=True)]
-    
+
     #Sort Barrels By Type [R,G,B,D]
     barrel_type = 1
     for barrel in sorted_barrels:
         barrel_types[barrel.potion_type.index(barrel_type)].append(barrel)
+
+    #determine how much space is available
+    num_types_buyable = 0
+    ml_can_buy = [0]*num_types
+    for index in range(len(barrel_types)):
+        if barrel_types[index]:
+            num_types_buyable = num_types_buyable + 1
+            ml_can_buy[index] = 1
+    ml_threshold = (ml_capacity-total_ml)//num_types_buyable
+    recalculate = False
+    for index in range(num_types):
+        ml_space_remain = ml_threshold-ml_available[index]
+        if ml_space_remain > 0:
+            ml_space[index] = ml_space_remain  
+        else:
+            ml_can_buy[index] = 0
+            num_types_buyable = num_types_buyable - 1
+            recalculate = True
+        
+    # Better Estimate If Necessay
+    if recalculate:
+        ml_threshold = (ml_capacity-total_ml)//num_types_buyable
+        for index in range(len(ml_types)):
+            ml_space_remain = ml_threshold-ml_available[index]
+            if ml_can_buy[index] == 1:
+                ml_space[index] = ml_space_remain
+
+    # Reduce Size to Space Left
+    for index in range(len(ml_types)):
+        if ml_needed[index] > ml_space[index]:
+            ml_needed[index] = ml_space[index]
 
     #Buy From Most Needed Barrel Type To Least
     type_index = ml_needed.index(max(ml_needed))
@@ -141,18 +166,14 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     buy_count = []
     unique_barrels = []
     buy_amt = 0
-    done = False
 
     #Determine If More ml Can Be Purchased For Later use
-    """
-    ml_needed = [ ml_needed[index] if ml_needed[index] < ml_space[index] else ml_space[index] for index in range(len(ml_types))]
-    ml_can_buy = [1]*4
     count = 0
     while True:
-        if count > 100:
+        if count > 30:
             break
         count += 1
-        print(ml_can_buy)
+        print(f"count {count}: " + ''.join(map(str,ml_can_buy)))
         if not any(ml_can_buy):
             break
         if ml_ratio_copy[type_index] <= 0 or ml_can_buy[type_index] == 0:
@@ -160,6 +181,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             continue
         if list_of_index[type_index] == len(barrel_types[type_index]):
             ml_can_buy[type_index] = 0
+            ml_ratio_copy[type_index] = 0
+            ml_ratio[type_index] = 0
             continue
         buy_amt = 1
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
@@ -181,6 +204,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             if cycle_complete:
                 for i in range(len(ml_ratio)):
                     ml_ratio_copy[i] += ml_ratio[i]
+        else:
+            print(ml_can_buy)
+            print(ml_needed)
+            list_of_index[type_index] = list_of_index[type_index] + 1
         type_index = (type_index+1) % num_types
 
     """
@@ -229,7 +256,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 list_of_index[type_index] += 1
                 continue
             type_index = (type_index+1)%num_types
-            
+        """        
+    
     for i in range(len(unique_barrels)):
         plan.append( {"sku":unique_barrels[i].sku, "quantity": buy_count[i]} )
     print(plan)
