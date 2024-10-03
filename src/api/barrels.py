@@ -169,15 +169,19 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     #Determine If More ml Can Be Purchased For Later use
     count = 0
+    loop_count = 0
+    full_loop = 4
     while True:
-        if count > 30:
-            break
         count += 1
         print(f"count {count}: " + ''.join(map(str,ml_can_buy)))
         if not any(ml_can_buy):
             break
         if ml_ratio_copy[type_index] <= 0 or ml_can_buy[type_index] == 0:
             type_index = (type_index+1) % num_types
+            if ml_can_buy[type_index] == 0:
+                loop_count += 1
+                if loop_count == full_loop:
+                    break
             continue
         if list_of_index[type_index] == len(barrel_types[type_index]):
             ml_can_buy[type_index] = 0
@@ -186,6 +190,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             continue
         buy_amt = 1
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
+        print(barrel_to_buy)
+        print(ml_can_buy)
+        print(ml_ratio_copy)
         if (usable_gold >= barrel_to_buy.price) and (ml_needed[type_index] >= barrel_to_buy.ml_per_barrel):
             buy_amt = 1
             usable_gold = usable_gold-barrel_to_buy.price
@@ -204,11 +211,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             if cycle_complete:
                 for i in range(len(ml_ratio)):
                     ml_ratio_copy[i] += ml_ratio[i]
+            type_index = (type_index+1) % num_types
         else:
-            print(ml_can_buy)
-            print(ml_needed)
             list_of_index[type_index] = list_of_index[type_index] + 1
-        type_index = (type_index+1) % num_types
+        #print(unique_barrels)
 
     """
     #Balance Barrel Purchases with Ratio and buying from each color first
