@@ -67,7 +67,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     ml_space = [0]*num_types
     gold_threshold = 0
     usable_gold = 0
-    ml_capacity = 0
+    remaining_ml_threshold = 0
+    ml_threshold = 0
+    overflow_count = 0
 
     with db.engine.begin() as connection: 
         #Check to determine if can purchase
@@ -80,15 +82,23 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         usable_gold = usable_gold-gold_threshold
         ml_per_capacity = 10000
         ml_capacity = ml_capacity_units * ml_per_capacity
+        ml_threshold = ml_capacity//num_types
         total_ml = 0
+        over_threshold = False
         for index in range(len(ml_types)):
             sql_to_execute = "SELECT num_%s_ml FROM global_inventory"
             ml_stored = connection.execute(sqlalchemy.text(sql_to_execute % ml_types[index])).scalar()
+            if ml_stored > ml_threshold:
+                over_threshold = True
+                overflow_count = overflow_count + 1
             ml_available[index] = ml_stored
             total_ml += ml_stored
         
         if (total_ml>=ml_capacity):
             return plan
+        
+        if over_threshold:
+            remaining_ml_threshold = (ml_capacity-total_ml)
         
         #ml Needed For Immediate Brewing
         potion_per_capacity = 50
@@ -125,38 +135,30 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         barrel_types[barrel.potion_type.index(barrel_type)].append(barrel)
 
     #determine how much space is available
-    num_types_buyable = 0
     ml_can_buy = [0]*num_types
+    not_buyable_count = 0
     for index in range(num_types):
         if len(barrel_types[index]) > 0:
-            num_types_buyable = num_types_buyable + 1
             ml_can_buy[index] = 1
-    if num_types_buyable == 0:
-        return []
-    ml_threshold = (ml_capacity-total_ml)//num_types_buyable
-    recalculate = False
+        else:
+            not_buyable_count = not_buyable_count + 1
+    ml_max = ml_threshold
+    if overflow_count > 0:
+        #Trys to Refill the low values as fast as possible
+        ml_max = remaining_ml_threshold // (num_types-overflow_count-not_buyable_count)
     for index in range(num_types):
-        ml_space_remain = ml_threshold-ml_available[index]
+        ml_space_remain = ml_max - ml_available[index]
         if ml_space_remain > 0:
             ml_space[index] = ml_space_remain  
         else:
             ml_can_buy[index] = 0
-            num_types_buyable = num_types_buyable - 1
-            recalculate = True
-        
-    # Better Estimate If Necessay
-    if num_types_buyable == 0:
-        return []
-    if recalculate:
-        ml_threshold = (ml_capacity-total_ml)//num_types_buyable
-        ml_space = [ml_threshold-ml_available[index] if ml_can_buy[index] == 1 else 0 for index in range(len(ml_types))]
 
     #Buy From Most Needed Barrel Type To Least
     min = 0
     for ml in ml_space:
         if min == 0 or (ml < min and ml > 0):
             min = ml
-    ml_ratio = [round(ml/min) for ml in ml_space]
+    ml_ratio = [round(ml_space[index]/min) if ml_can_buy[index] == 1 else 0 for index in range(num_types)]
     ml_ratio_copy = ml_ratio.copy()
     type_index = ml_ratio.index(max(ml_ratio))
     list_of_index = [0]*num_types
@@ -164,11 +166,11 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     unique_barrels = []
 
     #Determine If More ml Can Be Purchased For Later use
+    print(ml_space)
     count = 0
     while True:
         count += 1
         if not any(ml_can_buy):
-            print("RAN")
             break
         cycle_complete = True
         for ml in ml_ratio_copy:
@@ -182,12 +184,15 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 if ml_ratio_copy[i] == 0:
                     no_more += 1
         if no_more == num_types:
+            print("RUNS")
             break
         if ml_ratio_copy[type_index] <= 0 or ml_can_buy[type_index] == 0:
             type_index = (type_index+1) % num_types
             continue
         if list_of_index[type_index] >= len(barrel_types[type_index]):
             ml_can_buy[type_index] = 0
+            ml_ratio_copy[type_index] = 0
+            ml_ratio[type_index] = 0
             continue
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
         if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
