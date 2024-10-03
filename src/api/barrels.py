@@ -103,17 +103,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 ml_needed[index] += pots.type[index]*(potion_threshold-pots.quantity)
 
     #Create Ratio Of ML to Purchase Using Min
-    min = 0
     ml_count = 0
     for value in ml_needed:
-        if  (value < min and value != 0) or min == 0:
-            min = value
         if value != 0:
             ml_count = ml_count + 1
-    ml_ratio = [ round(ml/min) for ml in ml_needed]
-    ml_ratio_copy = ml_ratio.copy()
 
-    #Filter barrels purchasable with gold split between types needed and sort by ml per gold
+    #Filter barrels purchasable with gold split between types possible needed and sort by ml per gold
     desired_barrels = []
     barrel_ml_per_gold = []
     barrel_types = [[] for _ in range(num_types)]
@@ -132,8 +127,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     #determine how much space is available
     num_types_buyable = 0
     ml_can_buy = [0]*num_types
-    for index in range(len(barrel_types)):
-        if barrel_types[index]:
+    for index in range(num_types):
+        if len(barrel_types[index]) > 0:
             num_types_buyable = num_types_buyable + 1
             ml_can_buy[index] = 1
     if num_types_buyable == 0:
@@ -146,8 +141,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_space[index] = ml_space_remain  
         else:
             ml_can_buy[index] = 0
-            ml_ratio[index] = 0
-            ml_ratio_copy[index] = 0
             num_types_buyable = num_types_buyable - 1
             recalculate = True
         
@@ -156,27 +149,41 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         return []
     if recalculate:
         ml_threshold = (ml_capacity-total_ml)//num_types_buyable
-        for index in range(len(ml_types)):
-            ml_space_remain = ml_threshold-ml_available[index]
-            if ml_can_buy[index] == 1:
-                ml_space[index] = ml_space_remain
-    # Reduce Size to Available Space
-    for index in range(len(ml_types)):
-        if ml_needed[index] > ml_space[index]:
-            ml_needed[index] = ml_space[index]
+        ml_space = [ml_threshold-ml_available[index] if ml_can_buy[index] == 1 else 0 for index in range(len(ml_types))]
 
     #Buy From Most Needed Barrel Type To Least
-    type_index = ml_needed.index(max(ml_needed))
+    min = 0
+    for ml in ml_space:
+        if min == 0 or (ml < min and ml > 0):
+            min = ml
+    ml_ratio = [round(ml/min) for ml in ml_space]
+    ml_ratio_copy = ml_ratio.copy()
+    type_index = ml_ratio.index(max(ml_ratio))
     list_of_index = [0]*num_types
     buy_count = []
     unique_barrels = []
     buy_amt = 0
 
-    print(ml_needed)
     #Determine If More ml Can Be Purchased For Later use
     count = 0
     while True:
+        count += 1
+        #print(count)
+        print(ml_ratio_copy)
         if not any(ml_can_buy):
+            break
+        cycle_complete = True
+        for ml in ml_ratio_copy:
+            if ml > 0:
+                cycle_complete = False
+                break
+        no_more = 0
+        if cycle_complete:
+            for i in range(num_types):
+                ml_ratio_copy[i] = ml_ratio_copy[i] + ml_ratio[i]
+                if ml_ratio_copy[i] == 0:
+                    no_more += 1
+        if no_more == num_types:
             break
         if ml_ratio_copy[type_index] <= 0 or ml_can_buy[type_index] == 0:
             type_index = (type_index+1) % num_types
@@ -188,12 +195,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             continue
         buy_amt = 1
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
-        if (usable_gold < barrel_to_buy.price) or (ml_needed[type_index] < barrel_to_buy.ml_per_barrel):
+        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
             list_of_index[type_index] = list_of_index[type_index] + 1
             continue   
         buy_amt = 1
         usable_gold = usable_gold-barrel_to_buy.price
-        ml_needed[type_index] = ml_needed[type_index] - barrel_to_buy.ml_per_barrel
+        ml_space[type_index] = ml_space[type_index] - barrel_to_buy.ml_per_barrel
         if barrel_to_buy not in unique_barrels:
             unique_barrels.append(barrel_to_buy)
             buy_count.append(buy_amt)
@@ -203,15 +210,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 list_of_index[type_index] = list_of_index[type_index] + 1
                 continue
             buy_count[unique_barrels.index(barrel_to_buy)] = new_quantity
-        ml_ratio_copy[type_index] = ml_ratio_copy[type_index] - round(barrel_to_buy.ml_per_barrel/min)
-        cycle_complete = True
-        for ml in ml_ratio_copy:
-            if ml > 0:
-                cycle_complete = False
-                break
-        if cycle_complete:
-            for i in range(len(ml_ratio)):
-                ml_ratio_copy[i] = ml_ratio_copy[i] + ml_ratio[i]
+        relative_change = round(barrel_to_buy.ml_per_barrel/min)
+        if relative_change < buy_amt:
+            relative_change = buy_amt
+        ml_ratio_copy[type_index] = ml_ratio_copy[type_index] - relative_change
         type_index = (type_index+1) % num_types 
     
     for i in range(len(unique_barrels)):
