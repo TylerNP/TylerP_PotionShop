@@ -69,7 +69,7 @@ def get_bottle_plan():
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         potion_per_capacity = 50
         capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_inventory")).scalar()
-        potion_capacity = potion_per_capacity * capacity
+        potion_capacity = 50
         potion_threshold = potion_capacity // potions_available
         sql_to_execute = "SELECT type, quantity FROM potions WHERE quantity < %d ORDER BY quantity ASC, price DESC"
         potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % potion_threshold))
