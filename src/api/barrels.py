@@ -86,12 +86,23 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             for index in range(num_types):
                 ml_needed[index] += pots.type[index]*(potion_threshold-pots.quantity)
 
-    #Filter barrels purchasable with gold and sort by ml per gold
+    #Create Ratio Of ML to Purchase Using Min
+    min = 0
+    ml_count = 0
+    for value in ml_needed:
+        if  (value < min and value != 0) or min == 0:
+            min = value
+        if value != 0:
+            ml_count += 1
+    ml_ratio = [ round(ml/min) for ml in ml_needed]
+    ml_ratio_copy = ml_ratio.copy()
+
+    #Filter barrels purchasable with gold split between types needed and sort by ml per gold
     desired_barrels = []
     barrel_ml_per_gold = []
     barrel_types = [[] for _ in range(num_types)]
     for barrel in wholesale_catalog:
-        if barrel.price > usable_gold:
+        if barrel.price > usable_gold//ml_count:
             continue
         desired_barrels.append(barrel)
         barrel_ml_per_gold.append(barrel.ml_per_barrel//barrel.price)
@@ -101,14 +112,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     barrel_type = 1
     for barrel in sorted_barrels:
         barrel_types[barrel.potion_type.index(barrel_type)].append(barrel)
-
-    #Create Ratio Of ML to Purchase Using Min
-    min = 0
-    for value in ml_needed:
-        if  (value < min and value != 0) or min == 0:
-            min = value
-    ml_ratio = [ round(ml/min) for ml in ml_needed]
-    ml_ratio_copy = ml_ratio.copy()
 
     #Find Most Needed Barrel Type
     type_index = ml_needed.index(max(ml_needed))
