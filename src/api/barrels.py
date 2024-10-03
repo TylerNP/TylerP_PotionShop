@@ -136,6 +136,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         if barrel_types[index]:
             num_types_buyable = num_types_buyable + 1
             ml_can_buy[index] = 1
+
+    if num_types_buyable == 0:
+        return []
     ml_threshold = (ml_capacity-total_ml)//num_types_buyable
     recalculate = False
     for index in range(num_types):
