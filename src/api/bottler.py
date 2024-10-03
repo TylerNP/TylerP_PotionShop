@@ -81,6 +81,8 @@ def get_bottle_plan():
             for index in range(len(ml_max)):
                 ml_max[index] += potion.type[index]*desired_potion_brew_count
 
+    if not potion_brew_amount:
+        return plan
     min = potion_brew_amount[-1]
     potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
     brew_ratio_copy = potion_brew_ratio.copy()
