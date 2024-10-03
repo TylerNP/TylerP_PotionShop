@@ -170,6 +170,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         count += 1
         print(count)
         print(ml_ratio_copy)
+        if count == 7:
+            print(ml_can_buy)
+            print(type_index)
         if not any(ml_can_buy):
             break
         cycle_complete = True
