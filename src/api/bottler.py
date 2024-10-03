@@ -69,11 +69,11 @@ def get_bottle_plan():
         sql_to_execute = "SELECT COUNT(1) FROM potions"
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_inventory")).scalar()
-        sql_to_execute = "SELECT type, quantity FROM potions WHERE quantity < %d AND type[1] <= %d AND type[2] <= %d AND type[3] <= %d AND type[4] <= %d ORDER BY quantity ASC, price DESC"
-        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % (potion_threshold,ml_available[0], ml_available[1], ml_available[2], ml_available[3] )))
         potion_per_capacity = 50
         potion_capacity = potion_per_capacity * capacity
         potion_threshold = potion_capacity // potions_available
+        sql_to_execute = "SELECT type, quantity FROM potions WHERE quantity < %d AND type[1] <= %d AND type[2] <= %d AND type[3] <= %d AND type[4] <= %d ORDER BY quantity ASC, price DESC"
+        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % (potion_threshold,ml_available[0], ml_available[1], ml_available[2], ml_available[3] )))
         for potion in potions_brewable:
             unique_potions.append(potion.type)
             desired_potion_brew_count = potion_threshold-potion.quantity
