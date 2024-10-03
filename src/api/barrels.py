@@ -162,18 +162,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     list_of_index = [0]*num_types
     buy_count = []
     unique_barrels = []
-    buy_amt = 0
 
     #Determine If More ml Can Be Purchased For Later use
     count = 0
     while True:
         count += 1
-        print(count)
-        print(ml_ratio_copy)
-        if count == 7:
-            print(ml_can_buy)
-            print(type_index)
         if not any(ml_can_buy):
+            print("RAN")
             break
         cycle_complete = True
         for ml in ml_ratio_copy:
@@ -193,10 +188,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             continue
         if list_of_index[type_index] >= len(barrel_types[type_index]):
             ml_can_buy[type_index] = 0
-            ml_ratio_copy[type_index] = 0
-            ml_ratio[type_index] = 0
             continue
-        buy_amt = 1
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
         if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
             list_of_index[type_index] = list_of_index[type_index] + 1
@@ -219,6 +211,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         ml_ratio_copy[type_index] = ml_ratio_copy[type_index] - relative_change
         type_index = (type_index+1) % num_types 
     
+    print(count)
     for i in range(len(unique_barrels)):
         plan.append( {"sku":unique_barrels[i].sku, "quantity": buy_count[i]} )
     print(plan)
