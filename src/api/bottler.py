@@ -96,10 +96,8 @@ def get_bottle_plan():
     potion_unavailable = [0]*potion_count
     count = 0
     loop_count = 0
-    while potions_stored < potion_capacity:
+    while potions_stored < potion_capacity or all(potion_unavailable):
         count += 1
-        if all (potion_unavailable):
-            break
         if not any(brew_ratio_copy):
             brew_ratio_copy = potion_brew_ratio.copy()
         if brew_ratio_copy[potion_index] == 0 or potion_unavailable[potion_index] == 1:
