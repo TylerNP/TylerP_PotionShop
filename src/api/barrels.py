@@ -118,6 +118,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         if value != 0:
             ml_count = ml_count + 1
 
+    if ml_count == 0:
+        ml_count = num_types
+
     #Filter barrels purchasable with gold split between types possible needed and sort by ml per gold
     desired_barrels = []
     barrel_ml_per_gold = []
