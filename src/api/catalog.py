@@ -20,7 +20,7 @@ def get_catalog():
                             ORDERED BY quantity ASC 
                             LIMIT 6
                         """
-        potions = connection.execute(sqlalchemy.text())
+        potions = connection.execute(sqlalchemy.text(sql_to_execute))
         for potion in potions:
             if potion.quantity > 0:
                 potions_available.append( {
