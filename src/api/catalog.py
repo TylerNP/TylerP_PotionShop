@@ -22,7 +22,7 @@ def get_catalog():
                     "sku": potion.sku,
                     "name": potion.name,
                     "quantity": potion.quantity,
-                    "price": potion.price,
+                    "price": int(potion.price),
                     "potion_type": [potion.red, potion.green, potion.blue, potion.dark]
                 } )
     print(potions_available)
