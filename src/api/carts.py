@@ -83,12 +83,7 @@ def post_visits(visit_id: int, customers: list[Customer]):
     visited = False
     with db.engine.begin() as connection:
         for customer in customers:
-            sql_to_execute = "SELECT 1 FROM customers WHERE (level = %d AND customer_name = '%s' AND customer_class = '%s') LIMIT 1"
-            found = connection.execute(sqlalchemy.text(sql_to_execute % (customer.level, customer.customer_name, customer.character_class))).scalar()
-            if found == 1:
-                sql_to_execute = "UPDATE customers SET visit_id = %d WHERE (level = %d AND customer_name = '%s' AND customer_class = '%s')"
-            else:
-                sql_to_execute = "INSERT INTO customers (visit_id, level, customer_name, customer_class) VALUES (%d, %d, '%s', '%s')"
+            sql_to_execute = "INSERT INTO customers (visit_id, level, customer_name, customer_class) VALUES (%d, %d, '%s', '%s')"
             connection.execute(sqlalchemy.text(sql_to_execute % (visit_id, customer.level, customer.customer_name, customer.character_class)))
             visited = True
 
