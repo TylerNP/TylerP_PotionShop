@@ -87,18 +87,26 @@ def get_bottle_plan():
     potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
     brew_ratio_copy = potion_brew_ratio.copy()
     ml_usable = [ ml_available[index] if ml_available[index] < ml_max[index] else ml_max[index] for index in range(len(ml_max))]
+    ml_used = ml_usable.copy()
     unique_potion_counts = [0]*len(unique_potions)
     potion_index = 0
     potion_count = len(unique_potions)
     potion_unavailable = [0]*potion_count
+    count = 0
+    loop_count = 0
     while True:
+        count += 1
         if all (potion_unavailable):
             break
         if not any(brew_ratio_copy):
             brew_ratio_copy = potion_brew_ratio.copy()
         if brew_ratio_copy[potion_index] == 0 or potion_unavailable[potion_index] == 1:
-            potion_index = (potion_index+1)%len(unique_potions)
+            potion_index = (potion_index+1)%potion_count
+            loop_count = loop_count + 1
+            if loop_count > potion_count:
+                break
             continue
+        loop_count = 0
         brewed = True
         ml_leftover = [0]*4
         for index in range(len(ml_usable)):
@@ -122,7 +130,12 @@ def get_bottle_plan():
     for i in range(len(unique_potions)):
         if unique_potion_counts[i] == 0:
             continue
+        print({"potion_type": unique_potions[i], "quantity": unique_potion_counts[i]})
         plan.append( {"potion_type": unique_potions[i], "quantity": unique_potion_counts[i]} )
+
+    print(count)
+    for index in range(len(ml_types)):
+        print(f"{ml_types[index]} used {ml_used[index]-ml_usable[index]}")
     return plan
 
 if __name__ == "__main__":
