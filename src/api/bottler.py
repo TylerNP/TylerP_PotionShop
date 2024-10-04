@@ -62,6 +62,7 @@ def get_bottle_plan():
     ml_types = ["red", "green", "blue", "dark"]
     unique_potions = []
     potion_brew_amount = []
+    potion_capacity = 0
     with db.engine.begin() as connection: 
         for index in range(len(ml_types)):
             sql_to_execute = "SELECT num_%s_ml FROM global_inventory"
@@ -69,6 +70,7 @@ def get_bottle_plan():
         sql_to_execute = "SELECT COUNT(1) FROM potions"
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_inventory")).scalar()
+        potions_stored = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory")).scalar()
         potion_per_capacity = 50
         potion_capacity = potion_per_capacity * capacity
         potion_threshold = potion_capacity // potions_available
@@ -81,7 +83,7 @@ def get_bottle_plan():
             for index in range(len(ml_max)):
                 ml_max[index] += potion.type[index]*desired_potion_brew_count
 
-    if not potion_brew_amount:
+    if not potion_brew_amount or potions_stored >= potion_capacity:
         return []
     min = potion_brew_amount[-1]
     potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
@@ -94,7 +96,7 @@ def get_bottle_plan():
     potion_unavailable = [0]*potion_count
     count = 0
     loop_count = 0
-    while True:
+    while potions_stored < potion_capacity:
         count += 1
         if all (potion_unavailable):
             break
@@ -122,6 +124,7 @@ def get_bottle_plan():
         ml_usable = [ml for ml in ml_leftover]
         unique_potion_counts[potion_index] += 1
         brew_ratio_copy[potion_index] -= 1
+        potions_stored = potions_stored + 1
         if potion_brew_amount[potion_index] == unique_potion_counts[potion_index]:
             potion_unavailable[potion_index] = 1
         potion_index = (potion_index+1)%len(unique_potions)
