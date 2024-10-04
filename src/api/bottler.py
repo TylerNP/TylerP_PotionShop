@@ -66,7 +66,7 @@ def get_bottle_plan():
     ml_types = ["red", "green", "blue", "dark"]
     unique_potions = []
     potion_brew_amount = []
-    potions_storage_left = 0
+    potion_storage_left = 0
     with db.engine.begin() as connection: 
         # Combine With Potions Query As Subquery LATER
         sql_to_execute = "SELECT num_potions, potion_capacity, num_red_ml, num_green_ml, num_blue_ml, num_dark_ml FROM global_inventory"
@@ -86,7 +86,7 @@ def get_bottle_plan():
         potion_per_capacity = 50
         potion_capacity = potion_per_capacity * capacity
         potion_threshold = potion_capacity // potions_available
-        potions_storage_left = potion_capacity - potion_stored
+        potion_storage_left = potion_capacity - potion_stored
         sql_to_execute = """
                             SELECT red, green, blue, dark, quantity 
                             FROM potions 
@@ -116,7 +116,7 @@ def get_bottle_plan():
     potion_unavailable = [0]*potion_count
     count = 0
     loop_count = 0
-    while potions_storage_left > 0 and not all (potion_unavailable):
+    while potion_storage_left > 0 and not all (potion_unavailable):
         count += 1
         if not any(brew_ratio_copy):
             brew_ratio_copy = potion_brew_ratio.copy()
@@ -139,7 +139,7 @@ def get_bottle_plan():
             potion_brew_ratio[potion_index] = 0
             brew_ratio_copy[potion_index] = 0
             continue
-        potions_storage_left = potions_storage_left - 1
+        potion_storage_left = potion_storage_left - 1
         ml_usable = [ml for ml in ml_leftover]
         unique_potion_counts[potion_index] += 1
         brew_ratio_copy[potion_index] -= 1
