@@ -14,12 +14,7 @@ def get_catalog():
 
     potions_available = []
     with db.engine.begin() as connection: 
-        sql_to_execute = """
-                            SELECT sku, quantity, price, red, green, blue, dark, name 
-                            FROM potions 
-                            ORDERED BY quantity ASC 
-                            LIMIT 6
-                        """
+        sql_to_execute = """SELECT sku, quantity, price, red, green, blue, dark, name FROM potions ORDER BY quantity ASC LIMIT 6"""
         potions = connection.execute(sqlalchemy.text(sql_to_execute))
         for potion in potions:
             if potion.quantity > 0:
