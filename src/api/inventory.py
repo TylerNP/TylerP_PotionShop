@@ -40,9 +40,11 @@ def get_capacity_plan():
     ml_total = 0
     potion_count = 0
     with db.engine.begin() as connection:
-        sql_to_execute = """SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, 
+        sql_to_execute = """
+                            SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, 
                             gold, ml_capacity, potion_capacity, num_potions 
-                            FROM global_inventory"""
+                            FROM global_inventory
+                        """
             
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
@@ -93,10 +95,12 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     cost_per_capacity = 1000
     total_cost = cost_per_capacity*(ml_capacity_increment+potion_capacity_increment)
     with db.engine.begin() as connection:
-        sql_to_execute = """UPDATE global_inventory 
+        sql_to_execute = """
+                            UPDATE global_inventory 
                             SET gold = gold-%d,
                             ml_capacity = ml_capacity + %d,
-                            potion_capacity = potion_capacity + %d"""
+                            potion_capacity = potion_capacity + %d
+                        """
         connection.execute(sqlalchemy.text(sql_to_execute % (total_cost, ml_capacity_increment, potion_capacity_increment)))
 
     print(f"Used {total_cost} For {ml_capacity_increment} ml_capacity and {potion_capacity_increment} potion_capacity")
