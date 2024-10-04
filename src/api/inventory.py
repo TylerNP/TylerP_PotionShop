@@ -36,17 +36,44 @@ def get_capacity_plan():
     Start with 1 capacity for 50 potions and 1 capacity for 10000 ml of potion. Each additional 
     capacity unit costs 1000 gold.
     """
-    cost_per_capacity = 1000
-    gold = 0
+    usable_gold = 0
+    ml_total = 0
+    potion_count = 0
     with db.engine.begin() as connection:
-        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        ml_capacity = connection.execute(sqlalchemy.text("SELECT ml_capacity FROM global_inventory")).scalar()
-        potion_capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_inventory")).scalar()
+        sql_to_execute = """SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, 
+                            gold, ml_capacity, potion_capacity, num_potions 
+                            FROM global_inventory"""
+            
+        query = connection.execute(sqlalchemy.text(sql_to_execute))
+        for result in query:
+            divide_half = 2
+            usable_gold = result.gold // divide_half
+            ml_capacity = result.ml_capacity
+            potion_capacity = result.potion_capacity
+            potion_count = result.num_potions
+            ml_total = query.num_red_ml + query.num_green_ml + query.num_blue_ml + query.num_dark_ml
 
+    cost_per_capacity = 1000
+    ml_per_capacity = 10000
+    potion_per_capacity = 50
+    potion_capacity_bought = 0
+    ml_capacity_bought = 0
 
+    # Only buy capacity to double storage 
+    if ml_total > ml_capacity*ml_per_capacity and potion_count > potion_capacity*potion_per_capacity:
+        double = 2
+        ml_capacity_desired = double * ml_capacity_desired 
+        potion_capacity_desired = double * ml_capacity_desired
+        ml_capacity_bought = ml_capacity_desired - ml_capacity
+        potion_capacity_bought = potion_capacity_desired - potion_capacity
+        if usable_gold < cost_per_capacity*(ml_capacity_bought+potion_capacity_bought):
+            ml_capacity_bought = 0
+            potion_capacity_bought = 0
+ 
+    print(f"Bought {potion_capacity_bought} potion_capacity and {ml_capacity_bought} ml_capacity")
     return {
-        "potion_capacity": 0,
-        "ml_capacity": 0
+        "potion_capacity": potion_capacity_bought,
+        "ml_capacity": ml_capacity_bought
         }
 
 class CapacityPurchase(BaseModel):
@@ -61,4 +88,16 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     capacity unit costs 1000 gold.
     """
 
+    ml_capacity_increment = capacity_purchase.ml_capacity
+    potion_capacity_increment = capacity_purchase.potion_capacity
+    cost_per_capacity = 1000
+    total_cost = cost_per_capacity*(ml_capacity_increment+potion_capacity_increment)
+    with db.engine.begin() as connection:
+        sql_to_execute = """UPDATE global_inventory
+                            gold = gold-%d,
+                            ml_capacity = ml_capacity + %d
+                            potion_capacity = potion_capacity + %d"""
+        connection.execute(sqlalchemy.text(sql_to_execute % (total_cost, ml_capacity_increment, potion_capacity_increment)))
+
+    print(f"Used {total_cost} For {ml_capacity_increment} ml_capacity and {potion_capacity_increment} potion_capacity")
     return "OK"
