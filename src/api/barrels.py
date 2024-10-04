@@ -106,11 +106,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         sql_to_execute = "SELECT COUNT(1) FROM potions"
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         potion_threshold = potion_capacity // potions_available
-        sql_to_execute = "SELECT quantity, type FROM potions WHERE quantity < %d"
+        sql_to_execute = "SELECT quantity, red, green, blue, dark FROM potions WHERE quantity < %d"
         specific_pots = connection.execute(sqlalchemy.text(sql_to_execute % potion_threshold))
         for pots in specific_pots:
-            for index in range(num_types):
-                ml_needed[index] += pots.type[index]*(potion_threshold-pots.quantity)
+            ml_needed[0] += pots.red*(potion_threshold-pots.quantity)
+            ml_needed[1] += pots.green*(potion_threshold-pots.quantity)
+            ml_needed[2] += pots.blue*(potion_threshold-pots.quantity)
+            ml_needed[3] += pots.dark*(potion_threshold-pots.quantity)
 
     #Create Ratio Of ML to Purchase Using Min
     ml_count = 0
@@ -148,6 +150,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     ml_max = ml_threshold
     if overflow_count > 0:
         #Trys to Refill the low values as fast as possible
+        if (num_types-overflow_count-not_buyable_count) == 0:
+            return []
         ml_max = remaining_ml_threshold // (num_types-overflow_count-not_buyable_count)
     for index in range(num_types):
         ml_space_remain = ml_max - ml_available[index]

@@ -32,7 +32,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                 potion_count += potion.quantity
                 for index in range(len(potion.potion_type)):
                     ml_used[index] += potion.potion_type[index]*potion.quantity
-                sql_to_execute = "UPDATE potions SET quantity = quantity + %d WHERE type[1] = %d AND type[2] = %d AND type[3] = %d AND type[4] = %d"
+                sql_to_execute = "UPDATE potions SET quantity = quantity + %d WHERE red = %d AND blue = %d AND green = %d AND dark = %d"
                 connection.execute(sqlalchemy.text(sql_to_execute % (potion.quantity, potion.potion_type[0], potion.potion_type[1], potion.potion_type[2], potion.potion_type[3])))
                 potions_created.append( {"potions_delivered": potion.potion_type, "id": order_id} )
 
@@ -62,28 +62,33 @@ def get_bottle_plan():
     ml_types = ["red", "green", "blue", "dark"]
     unique_potions = []
     potion_brew_amount = []
-    potion_capacity = 0
     with db.engine.begin() as connection: 
-        for index in range(len(ml_types)):
-            sql_to_execute = "SELECT num_%s_ml FROM global_inventory"
-            ml_available[index] = connection.execute(sqlalchemy.text(sql_to_execute % ml_types[index])).scalar()
+        # Combine With Potions Query As Subquery LATER
+        sql_to_execute = "SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml FROM global_inventory"
+        ml_colors = connection.execute(sqlalchemy.text(sql_to_execute))
+        for ml in ml_colors:
+            ml_available[0] = ml.num_red_ml
+            ml_available[1] = ml.num_green_ml
+            ml_available[2] = ml.num_blue_ml
+            ml_available[3] = ml.num_dark_ml
         sql_to_execute = "SELECT COUNT(1) FROM potions"
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         capacity = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_inventory")).scalar()
-        potions_stored = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory")).scalar()
         potion_per_capacity = 50
         potion_capacity = potion_per_capacity * capacity
         potion_threshold = potion_capacity // potions_available
-        sql_to_execute = "SELECT type, quantity FROM potions WHERE quantity < %d AND type[1] <= %d AND type[2] <= %d AND type[3] <= %d AND type[4] <= %d ORDER BY quantity ASC, price DESC"
+        sql_to_execute = "SELECT red, green, blue, dark, quantity FROM potions WHERE quantity < %d AND red <= %d AND green <= %d AND blue <= %d AND dark <= %d ORDER BY quantity ASC, price DESC"
         potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % (potion_threshold,ml_available[0], ml_available[1], ml_available[2], ml_available[3] )))
         for potion in potions_brewable:
-            unique_potions.append(potion.type)
+            unique_potions.append([potion.red, potion.green, potion.blue, potion.dark])
             desired_potion_brew_count = potion_threshold-potion.quantity
             potion_brew_amount.append(desired_potion_brew_count)
-            for index in range(len(ml_max)):
-                ml_max[index] += potion.type[index]*desired_potion_brew_count
+            ml_max[0] += potion.red*desired_potion_brew_count
+            ml_max[1] += potion.blue*desired_potion_brew_count
+            ml_max[2] += potion.green*desired_potion_brew_count
+            ml_max[3] += potion.dark*desired_potion_brew_count
 
-    if not potion_brew_amount or potions_stored >= potion_capacity:
+    if not potion_brew_amount:
         return []
     min = potion_brew_amount[-1]
     potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
@@ -96,8 +101,10 @@ def get_bottle_plan():
     potion_unavailable = [0]*potion_count
     count = 0
     loop_count = 0
-    while potions_stored < potion_capacity or all(potion_unavailable):
+    while True:
         count += 1
+        if all (potion_unavailable):
+            break
         if not any(brew_ratio_copy):
             brew_ratio_copy = potion_brew_ratio.copy()
         if brew_ratio_copy[potion_index] == 0 or potion_unavailable[potion_index] == 1:
@@ -122,7 +129,6 @@ def get_bottle_plan():
         ml_usable = [ml for ml in ml_leftover]
         unique_potion_counts[potion_index] += 1
         brew_ratio_copy[potion_index] -= 1
-        potions_stored = potions_stored + 1
         if potion_brew_amount[potion_index] == unique_potion_counts[potion_index]:
             potion_unavailable[potion_index] = 1
         potion_index = (potion_index+1)%len(unique_potions)
