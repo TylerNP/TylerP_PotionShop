@@ -34,7 +34,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                     ml_used[index] += potion.potion_type[index]*potion.quantity
                 sql_to_execute = """
                                     UPDATE potions 
-                                    SET quantity = quantity + %d WHERE red = %d AND blue = %d AND green = %d AND dark = %d
+                                    SET quantity = quantity + %d WHERE red = %d AND green = %d AND blue = %d AND dark = %d
                                 """
                 connection.execute(sqlalchemy.text(sql_to_execute % (potion.quantity, potion.potion_type[0], potion.potion_type[1], potion.potion_type[2], potion.potion_type[3])))
                 potions_created.append( {"potions_delivered": potion.potion_type, "id": order_id} )
