@@ -90,7 +90,7 @@ def get_bottle_plan():
         sql_to_execute = """
                             SELECT red, green, blue, dark, quantity 
                             FROM potions 
-                            WHERE quantity < %d AND red <= %d AND green <= %d AND blue <= %d AND dark <= %d 
+                            WHERE quantity < %d AND red <= %d AND green <= %d AND blue <= %d AND dark <= %d and brew = TRUE
                             ORDER BY quantity ASC, price DESC
                         """
         potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % (potion_threshold,ml_available[0], ml_available[1], ml_available[2], ml_available[3] )))

@@ -106,7 +106,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         sql_to_execute = "SELECT COUNT(1) FROM potions"
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         potion_threshold = potion_capacity // potions_available
-        sql_to_execute = "SELECT quantity, red, green, blue, dark FROM potions WHERE quantity < %d"
+        sql_to_execute = "SELECT quantity, red, green, blue, dark FROM potions WHERE quantity < %d brew = TRUE"
         specific_pots = connection.execute(sqlalchemy.text(sql_to_execute % potion_threshold))
         for pots in specific_pots:
             ml_needed[0] += pots.red*(potion_threshold-pots.quantity)
