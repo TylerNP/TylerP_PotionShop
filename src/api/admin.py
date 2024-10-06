@@ -17,7 +17,7 @@ def reset():
     Reset the game state. Gold goes to 100, all potions are removed from
     inventory, and all barrels are removed from inventory. Carts are all reset.
     """
-    with db.egine.begin() as connection:
+    with db.engine.begin() as connection:
         sql_to_execute = """UPDATE global_inventory 
                             SET gold = 100, 
                             num_red_ml = 0,
