@@ -102,7 +102,7 @@ def create_cart(new_cart: Customer):
     new_id = 0
     with db.engine.begin() as connection: 
         new_id = connection.execute(sqlalchemy.text("INSERT INTO carts DEFAULT VALUES RETURNING id")).scalar()
-        sql_to_execute = "INSERT INTO customers (cart_id, customer_name, customer_class, levl) VALUES  (%d, '%s', '%s', %d)"
+        sql_to_execute = "INSERT INTO customers (cart_id, customer_name, customer_class, level) VALUES  (%d, '%s', '%s', %d)"
         connection.execute(sqlalchemy.text(sql_to_execute % (new_id, new_cart.customer_name, new_cart.character_class, new_cart.level)))
     print("cart_id: %d" % new_id)
 
