@@ -120,15 +120,24 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """
     bought = False
     with db.engine.begin() as connection:
-        sql_to_execute = "SELECT quantity FROM potions WHERE sku = '%s' LIMIT 1"
-        amt = connection.execute(sqlalchemy.text(sql_to_execute % item_sku)).scalar()
+        sql_to_execute = "SELECT quantity, price FROM potions WHERE sku = '%s' LIMIT 1"
+        amt = 0
+        price = 0
+        potions = connection.execute(sqlalchemy.text(sql_to_execute % item_sku))
+        for potion in potions:
+            amt = potion.quantity
+            price = int(potion.price)
         if cart_item.quantity <= amt:
             sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES (%d, '%s', %d)"
             connection.execute(sqlalchemy.text(sql_to_execute % (cart_id, item_sku, cart_item.quantity)))
+            sql_to_execute = """
+                                INSERT INTO orders (potion_quantity, sku, gold_cost, customer_id) 
+                                VALUES (%d, '%s', %d, (SELECT id FROM customers WHERE cart_id = %d))
+                            """
+            connection.execute(sqlalchemy.text(sql_to_execute % (cart_item.quantity, item_sku, cart_item.quantity*price, cart_id)))
             bought = True
 
     return { "success": bought }
-
 
 class CartCheckout(BaseModel):
     payment: str
