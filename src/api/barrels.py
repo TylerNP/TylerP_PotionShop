@@ -172,8 +172,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     buy_count = []
     unique_barrels = []
 
-    print(ml_space)
-    print(ml_ratio)
     #Determine If More ml Can Be Purchased For Later use
     count = 0
     while True:
@@ -194,7 +192,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 if ml_ratio_copy[i] == 0:
                     no_more += 1
         if no_more == num_types:
-            print("RAN")
             break
         #==========================#
         if ml_ratio_copy[type_index] <= 0 or ml_can_buy[type_index] == 0:
