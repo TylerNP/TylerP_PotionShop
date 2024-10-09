@@ -191,7 +191,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
             values = [{"cart_id":cart_id, "quantity": cart_item.quantity, "sku":item_sku, "cost":cart_item.quantity*price}]
             transcation_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
             sql_to_execute = """
-                                INSERT INTO order_ledgers (gold_cost, transaction_id, cart_id, customer_id) 
+                                INSERT INTO customer_ledgers (gold_cost, transaction_id, cart_id, customer_id) 
                                 VALUES (:gold_cost, :transaction_id, :cart_id, (SELECT id FROM customers WHERE cart_id = :cart_id))
                             """
             values = [{"gold_cost": cart_item.quantity*price, "transaction_id": transcation_id, "cart_id":cart_id}]
@@ -227,7 +227,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                             WHERE cart_id = :cart_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
-        sql_to_execute = "SELECT SUM(gold_cost) FROM order_ledgers WHERE cart_id = :cart_id"
+        sql_to_execute = "SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id"
         gold_total = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
         sql_to_execute = "UPDATE global_inventory SET gold = gold + :gold_total"
         connection.execute(sqlalchemy.text(sql_to_execute), {"gold_total":gold_total})
