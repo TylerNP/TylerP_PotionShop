@@ -127,6 +127,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     desired_barrels = []
     barrel_ml_per_gold = []
     barrel_types = [[] for _ in range(num_types)]
+    small_gold = 500 #gold for large barrel (red/green)
+    if usable_gold < small_gold:
+        ml_count = 1
     for barrel in wholesale_catalog:
         if barrel.price > usable_gold//ml_count:
             continue
