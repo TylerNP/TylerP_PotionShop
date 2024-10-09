@@ -154,10 +154,10 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
             values = [{"cart_id":cart_id, "quantity": cart_item.quantity, "sku":item_sku, "cost":cart_item.quantity*price}]
             transcation_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
             sql_to_execute = """
-                                INSERT INTO order_ledgers (potion_quantity, sku, gold_cost, transaction_id, cart_id, customer_id) 
-                                VALUES (:quantity, :potion_sku, :gold_cost, :transaction_id, :cart_id, (SELECT id FROM customers WHERE cart_id = :cart_id))
+                                INSERT INTO order_ledgers (gold_cost, transaction_id, cart_id, customer_id) 
+                                VALUES (:gold_cost, :transaction_id, :cart_id, (SELECT id FROM customers WHERE cart_id = :cart_id))
                             """
-            values = [{"quantity":cart_item.quantity, "potion_sku":item_sku, "gold_cost": cart_item.quantity*price, "transaction_id": transcation_id, "cart_id":cart_id}]
+            values = [{"gold_cost": cart_item.quantity*price, "transaction_id": transcation_id, "cart_id":cart_id}]
             connection.execute(sqlalchemy.text(sql_to_execute), values)
             bought = True
 
@@ -186,7 +186,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                             UPDATE global_inventory 
                             SET num_potions = num_potions - 
                             (SELECT SUM(potion_quantity) 
-                            FROM order_ledgers 
+                            FROM cart_items 
                             WHERE cart_id = :cart_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
