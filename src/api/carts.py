@@ -168,9 +168,9 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """
     bought = False
     with db.engine.begin() as connection:
-        sql_to_execute = "SELECT quantity, price FROM potions WHERE sku =:sku LIMIT 1"
         amt = 0
         price = 0
+        sql_to_execute = "SELECT quantity, price FROM potions WHERE sku =:sku LIMIT 1"
         potions = connection.execute(sqlalchemy.text(sql_to_execute), {"sku":item_sku})
         for potion in potions:
             amt = potion.quantity

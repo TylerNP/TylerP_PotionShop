@@ -17,14 +17,15 @@ def get_inventory():
     """
     Returns quantities of items in global inventory 
     """
-    ml_types = ["red", "green", "blue", "dark"]
     gold = 0
     ml_in_barrels = 0
     number_of_potions = 0
     with db.engine.begin() as connection:
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        for i in range(len(ml_types)):
-            ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_%s_ml FROM global_inventory" % ml_types[i])).scalar()
+        ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
+        ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
+        ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
+        ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_dark_ml FROM global_inventory")).scalar()
         number_of_potions = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory")).scalar()
     
     return {"number_of_potions": number_of_potions, "ml_in_barrels": ml_in_barrels, "gold": gold}
@@ -97,11 +98,11 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     with db.engine.begin() as connection:
         sql_to_execute = """
                             UPDATE global_inventory 
-                            SET gold = gold-%d,
-                            ml_capacity = ml_capacity + %d,
-                            potion_capacity = potion_capacity + %d
+                            SET gold = gold-:gold_cost,
+                            ml_capacity = ml_capacity + :ml_capacity_added,
+                            potion_capacity = potion_capacity + :potion_capacity_added
                         """
-        connection.execute(sqlalchemy.text(sql_to_execute % (total_cost, ml_capacity_increment, potion_capacity_increment)))
+        connection.execute(sqlalchemy.text(sql_to_execute), [{"gold_cost": total_cost, "ml_capacity_added":ml_capacity_increment, "potion_capacity_added": potion_capacity_increment}])
 
     print(f"Used {total_cost} For {ml_capacity_increment} ml_capacity and {potion_capacity_increment} potion_capacity")
     return "OK"
