@@ -81,11 +81,48 @@ def post_visits(visit_id: int, customers: list[Customer]):
     Which customers visited the shop today?
     """
     visited = False
+    customers_tuple = [(visit_id, customer.level, customer.customer_name, customer.character_class) for customer in customers]
     with db.engine.begin() as connection:
-        for customer in customers:
-            #sql_to_execute = "INSERT INTO customers (visit_id, level, customer_name, customer_class) VALUES (%d, %d, '%s', '%s')"
-            #connection.execute(sqlalchemy.text(sql_to_execute % (visit_id, customer.level, customer.customer_name, customer.character_class)))
-            visited = True
+        sql_to_execute = """
+                            CREATE TABLE current_customers (
+                            new_visit_id bigint null,
+                            c_level bigint null,
+                            c_customer_name text null,
+                            c_customer_class text null
+                            )
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute))
+        sql_to_execute = """
+                            INSERT INTO current_customers (new_visit_id, c_level, c_customer_name, c_customer_class)
+                            SELECT visit_id, level, customer_name, customer_class 
+                            FROM (VALUES %s) 
+                            AS new (visit_id, level, customer_name, customer_class)
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute % ', '.join(map(str, customers_tuple))))
+        sql_to_execute = """
+                            INSERT INTO customers (visit_id, level, customer_name, customer_class)
+                            SELECT new_visit_id, c_level, c_customer_name, c_customer_class
+                            FROM current_customers AS cc
+                            LEFT JOIN customers AS c
+                            ON c.level = cc.c_level
+                            AND c.customer_name = cc.c_customer_name
+                            AND c.customer_class = cc.c_customer_class
+                            WHERE c.level is NULL
+                            AND c.customer_name is NULL
+                            And c.customer_class is NULL
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute))
+        sql_to_execute = """
+                            UPDATE customers 
+                            SET visit_id = cc.new_visit_id
+                            FROM current_customers AS cc
+                            WHERE level = cc.c_level
+                            AND customer_name = cc.c_customer_name
+                            AND customer_class = cc.c_customer_class
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute))
+        connection.execute(sqlalchemy.text("DROP TABLE current_customers"))
+        visited = True
 
     return [
             {
