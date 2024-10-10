@@ -190,6 +190,7 @@ def get_bottle_plan():
             potion_unavailable[potion_index] = 1
         potion_index = (potion_index+1)%len(unique_potions)
 
+    print(f"Looped: {count} Times") 
     plan = []
     for i in range(len(unique_potions)):
         if unique_potion_counts[i] == 0:
@@ -197,7 +198,6 @@ def get_bottle_plan():
         print({"potion_type": unique_potions[i], "quantity": unique_potion_counts[i]})
         plan.append( {"potion_type": unique_potions[i], "quantity": unique_potion_counts[i]} )
 
-    print(count)
     for index in range(len(ml_types)):
         print(f"{ml_types[index]} used {ml_used[index]-ml_usable[index]}")
     return plan

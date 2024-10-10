@@ -39,15 +39,28 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
         barrels_sent.append( {"barrels delivered": barrel, "order_id": order_id} )
         
     with db.engine.begin() as connection: 
-        sql_to_execute = "UPDATE global_inventory SET gold = gold - %d"
-        connection.execute(sqlalchemy.text(sql_to_execute % gold_cost))
-        for index in range(len(ml_type)):
-            sql_to_execute = "UPDATE global_inventory SET num_%s_ml = num_%s_ml + %d"
-            connection.execute(sqlalchemy.text(sql_to_execute % (ml_type[index], ml_type[index], ml_bought[index])))
+        sql_to_execute = """
+                            UPDATE global_inventory 
+                            SET gold = gold - :gold_cost,
+                            num_red_ml = num_red_ml + :red_bought,
+                            num_green_ml = num_green_ml + :green_bought,
+                            num_blue_ml = num_blue_ml + :blue_bought,
+                            num_dark_ml = num_dark_ml + :dark_bought
+                        """
+        values = [
+                    {
+                        "gold_cost":gold_cost, 
+                        "red_bought":ml_bought[0], 
+                        "green_bought":ml_bought[1], 
+                        "blue_bought":ml_bought[2], 
+                        "dark_bought":ml_bought[3]
+                    }
+                ]
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
 
     for index in range(len(ml_type)):
         print("Bought %d %s ml" % (ml_bought[index], ml_type[index]))
-    return barrels_sent
+    return "OK"
 
 # Gets called once a day
 @router.post("/plan")
@@ -73,11 +86,21 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     with db.engine.begin() as connection: 
         #Check to determine if can purchase
-        query = connection.execute(sqlalchemy.text("SELECT ml_capacity, potion_capacity, gold FROM global_inventory"))
+        sql_to_execute = """
+                            SELECT ml_capacity, potion_capacity, gold, num_red_ml, 
+                                num_green_ml, num_blue_ml, num_dark_ml 
+                            FROM global_inventory
+                        """
+        query = connection.execute(sqlalchemy.text(sql_to_execute))
+        ml_stored = [0]*4
         for result in query:
             potion_capacity_units = result.potion_capacity
             ml_capacity_units = result.ml_capacity
             usable_gold = result.gold
+            ml_stored[0] = result.num_red_ml
+            ml_stored[1] = result.num_green_ml
+            ml_stored[2] = result.num_blue_ml
+            ml_stored[3] = result.num_dark_ml
 
         usable_gold = usable_gold-gold_threshold
         ml_per_capacity = 10000
@@ -86,13 +109,11 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         total_ml = 0
         over_threshold = False
         for index in range(len(ml_types)):
-            sql_to_execute = "SELECT num_%s_ml FROM global_inventory"
-            ml_stored = connection.execute(sqlalchemy.text(sql_to_execute % ml_types[index])).scalar()
-            if ml_stored > ml_threshold:
+            if ml_stored[index] > ml_threshold:
                 over_threshold = True
                 overflow_count = overflow_count + 1
-            ml_available[index] = ml_stored
-            total_ml += ml_stored
+            ml_available[index] = ml_stored[index]
+            total_ml += ml_stored[index]
         
         if (total_ml>=ml_capacity):
             return plan
@@ -101,13 +122,17 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             remaining_ml_threshold = (ml_capacity-total_ml)
         
         #ml Needed For Immediate Brewing
-        potion_per_capacity = 50
-        potion_capacity = potion_per_capacity * potion_capacity_units
-        sql_to_execute = "SELECT COUNT(1) FROM potions"
-        potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
-        potion_threshold = potion_capacity // potions_available
-        sql_to_execute = "SELECT quantity, red, green, blue, dark FROM potions WHERE quantity < %d AND brew = TRUE"
-        specific_pots = connection.execute(sqlalchemy.text(sql_to_execute % potion_threshold))
+        sql_to_execute = "SELECT (50*(SELECT potion_capacity FROM global_inventory) / (SELECT COUNT(1) FROM potions WHERE brew = TRUE))"
+        potion_threshold = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
+        sql_to_execute = """
+                            SELECT quantity, red, green, blue, dark 
+                            FROM potions
+                            WHERE brew = TRUE 
+                            AND quantity < 
+                            50*(SELECT potion_capacity FROM global_inventory LIMIT 1) / 
+                            (SELECT COUNT(1) FROM potions WHERE brew = TRUE)
+                        """
+        specific_pots = connection.execute(sqlalchemy.text(sql_to_execute))
         for pots in specific_pots:
             ml_needed[0] += pots.red*(potion_threshold-pots.quantity)
             ml_needed[1] += pots.green*(potion_threshold-pots.quantity)
