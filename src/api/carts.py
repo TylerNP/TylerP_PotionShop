@@ -81,7 +81,13 @@ def post_visits(visit_id: int, customers: list[Customer]):
     Which customers visited the shop today?
     """
     visited = False
-    customers_tuple = [(visit_id, customer.level, customer.customer_name, customer.character_class) for customer in customers]
+    level_list = []
+    name_list = []
+    class_list = []
+    for customer in customers:
+        level_list.append(customer.level)
+        name_list.append(customer.customer_name)
+        class_list.append(customer.character_class)
     with db.engine.begin() as connection:
         sql_to_execute = """
                             CREATE TABLE current_customers (
@@ -94,11 +100,10 @@ def post_visits(visit_id: int, customers: list[Customer]):
         connection.execute(sqlalchemy.text(sql_to_execute))
         sql_to_execute = """
                             INSERT INTO current_customers (new_visit_id, c_level, c_customer_name, c_customer_class)
-                            SELECT visit_id, level, customer_name, customer_class 
-                            FROM (VALUES %s) 
-                            AS new (visit_id, level, customer_name, customer_class)
+                            SELECT :visit_id, level, customer_name, customer_class 
+                            FROM UNNEST(:level_list, :name_list, :class_list) 
                         """
-        connection.execute(sqlalchemy.text(sql_to_execute % ', '.join(map(str, customers_tuple))))
+        connection.execute(sqlalchemy.text(sql_to_execute), [{"visit_id":visit_id, "level_list":level_list, "name_list":name_list, "class_list":class_list}])
         sql_to_execute = """
                             INSERT INTO customers (visit_id, level, customer_name, customer_class)
                             SELECT new_visit_id, c_level, c_customer_name, c_customer_class
@@ -140,8 +145,10 @@ def create_cart(new_cart: Customer):
     with db.engine.begin() as connection: 
         new_id = connection.execute(sqlalchemy.text("INSERT INTO carts DEFAULT VALUES RETURNING id")).scalar()
         sql_to_execute = """
-                            INSERT INTO customers (cart_id, customer_name, customer_class, level) 
-                            VALUES  (:cart_id, :customer_name, :customer_class, :level)
+                            UPDATE customers SET cart_id = :cart_id
+                            WHERE customer_name = :customer_name 
+                            AND customer_class = :customer_class
+                            AND level = :level
                         """
         values = [
                     {
