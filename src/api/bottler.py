@@ -99,8 +99,8 @@ def get_bottle_plan():
             desired_potion_brew_count = potion_threshold-potion.quantity
             potion_brew_amount.append(desired_potion_brew_count)
             ml_max[0] += potion.red*desired_potion_brew_count
-            ml_max[1] += potion.blue*desired_potion_brew_count
-            ml_max[2] += potion.green*desired_potion_brew_count
+            ml_max[1] += potion.green*desired_potion_brew_count
+            ml_max[2] += potion.blue*desired_potion_brew_count
             ml_max[3] += potion.dark*desired_potion_brew_count
 
     if not potion_brew_amount:

@@ -193,7 +193,9 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                     ]
             connection.execute(sqlalchemy.text(sql_to_execute), values)
             sql_to_execute = """
-                                INSERT INTO order_transactions (description) VALUES ('Cart :cart_id bought :quantity type ':sku' for :cost gold') RETURNING id
+                                INSERT INTO order_transactions (description) 
+                                VALUES ('Cart :cart_id bought :quantity type ':sku' for :cost gold') 
+                                RETURNING id
                             """
             values = [{"cart_id":cart_id, "quantity": cart_item.quantity, "sku":item_sku, "cost":cart_item.quantity*price}]
             transcation_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
