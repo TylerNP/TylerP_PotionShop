@@ -193,17 +193,30 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                     ]
             connection.execute(sqlalchemy.text(sql_to_execute), values)
             sql_to_execute = """
-                                INSERT INTO order_transactions (description) 
+                                INSERT INTO gold_transactions (description) 
                                 VALUES ('Cart :cart_id bought :quantity type ':sku' for :cost gold') 
                                 RETURNING id
                             """
-            values = [{"cart_id":cart_id, "quantity": cart_item.quantity, "sku":item_sku, "cost":cart_item.quantity*price}]
+            values = [
+                        {
+                            "cart_id":cart_id, 
+                            "quantity": cart_item.quantity, 
+                            "sku":item_sku, 
+                            "cost":cart_item.quantity*price
+                        }
+                    ]
             transcation_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
             sql_to_execute = """
                                 INSERT INTO customer_ledgers (gold_cost, transaction_id, cart_id, customer_id) 
                                 VALUES (:gold_cost, :transaction_id, :cart_id, (SELECT id FROM customers WHERE cart_id = :cart_id))
                             """
-            values = [{"gold_cost": cart_item.quantity*price, "transaction_id": transcation_id, "cart_id":cart_id}]
+            values = [
+                        {
+                            "gold_cost": cart_item.quantity*price, 
+                            "transaction_id": transcation_id, 
+                            "cart_id":cart_id
+                        }
+                    ]
             connection.execute(sqlalchemy.text(sql_to_execute), values)
             bought = True
 
@@ -220,26 +233,25 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     total_potions = 0
     gold_total = 0
     with db.engine.begin() as connection: 
-        sql_to_execute = "SELECT potion_quantity, sku FROM cart_items WHERE cart_id = :cart_id"
-        potions = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
-        for item in potions:
-            total_potions += item.potion_quantity
-            sql_to_execute = "UPDATE potions SET quantity = quantity - :potion_bought WHERE sku = :sku"
-            values = [{"potion_bought": item.potion_quantity, "sku": item.sku}]
-            connection.execute(sqlalchemy.text(sql_to_execute), values)
-
+        sql_to_execute = """
+                            UPDATE potions SET quantity = quantity - potion_quantity
+                            FROM cart_items AS ci
+                            WHERE cart_id = :cart_id
+                            AND potions.sku = ci.sku
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), [{"cart_id":cart_id}])
         sql_to_execute = """
                             UPDATE global_inventory 
-                            SET num_potions = num_potions - 
-                            (SELECT SUM(potion_quantity) 
-                            FROM cart_items 
-                            WHERE cart_id = :cart_id)
+                            SET num_potions = num_potions - (SELECT SUM(potion_quantity) FROM cart_items WHERE cart_id = :cart_id), 
+                            gold = gold + (SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
+        # REPLACE BELOW LATER 
         sql_to_execute = "SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id"
         gold_total = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
-        sql_to_execute = "UPDATE global_inventory SET gold = gold + :gold_total"
-        connection.execute(sqlalchemy.text(sql_to_execute), {"gold_total":gold_total})
+        sql_to_execute = "SELECT SUM(potion_quantity) FROM cart_items WHERE cart_id = :cart_id"
+        total_potions = connection.execute(sqlalchemy.text(sql_to_execute), [{"cart_id":cart_id}]).scalar()
+        # REPLACE ABOVE LATER
         sql_to_execute = "DELETE FROM carts WHERE id = :id"
         connection.execute(sqlalchemy.text(sql_to_execute), {"id":cart_id})
 
