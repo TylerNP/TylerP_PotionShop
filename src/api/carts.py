@@ -100,8 +100,9 @@ def post_visits(visit_id: int, customers: list[Customer]):
         connection.execute(sqlalchemy.text(sql_to_execute))
         sql_to_execute = """
                             INSERT INTO current_customers (new_visit_id, c_level, c_customer_name, c_customer_class)
-                            SELECT :visit_id, level, customer_name, customer_class 
-                            FROM UNNEST(:level_list, :name_list, :class_list) 
+                            SELECT :visit_id, parameter.p_level, parameter.p_customer_name, parameter.p_customer_class 
+                            FROM UNNEST(:level_list, :name_list, :class_list)
+                            AS parameter (p_level, p_customer_name, p_customer_class)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), [{"visit_id":visit_id, "level_list":level_list, "name_list":name_list, "class_list":class_list}])
         sql_to_execute = """

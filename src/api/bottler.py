@@ -33,7 +33,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                     ml_used[index] += potion.potion_type[index]*potion.quantity
                 sql_to_execute = """
                                     UPDATE potions 
-                                    SET quantity = quantity + :quantity 
+                                    SET quantity = quantity + :new_quantity 
                                     WHERE red = :red 
                                     AND green = :green 
                                     AND blue = :blue 
@@ -41,14 +41,14 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                                 """
                 values = [
                             {
-                                "quantity":potion.quantity, 
+                                "new_quantity":potion.quantity, 
                                 "red":potion.potion_type[0], 
                                 "green":potion.potion_type[1], 
                                 "blue":potion.potion_type[2], 
                                 "dark":potion.potion_type[3]
                             }
                         ]
-                connection.execute(sqlalchemy.text(sql_to_execute), )
+                connection.execute(sqlalchemy.text(sql_to_execute), values)
                 potions_created.append( {"potions_delivered": potion.potion_type, "id": order_id} )
 
         sql_to_execute = """
@@ -94,7 +94,7 @@ def get_bottle_plan():
             capacity = result.potion_capacity
             potion_stored = result.num_potions
 
-        sql_to_execute = "SELECT COUNT(1) FROM potions"
+        sql_to_execute = "SELECT COUNT(1) FROM potions WHERE brew = TRUE"
         potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         potion_per_capacity = 50
         potion_capacity = potion_per_capacity * capacity
