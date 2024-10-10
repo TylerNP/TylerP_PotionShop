@@ -22,48 +22,57 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     Update database values for ml and potions
     """
     ml_used = [0]*4
-    potions_created = []
-    potion_count = 0
+    ml_red, ml_green, ml_blue, ml_dark = [], [], [], []
+    quantities = []
+    for potion in potions_delivered:
+        quantities.append(potion.quantity)
+        ml_red.append(potion.potion_type[0])
+        ml_green.append(potion.potion_type[1])
+        ml_blue.append(potion.potion_type[2])
+        ml_dark.append(potion.potion_type[3])
+        ml_used[0] += potion.potion_type[0]*potion.quantity
+        ml_used[1] += potion.potion_type[1]*potion.quantity
+        ml_used[2] += potion.potion_type[2]*potion.quantity
+        ml_used[3] += potion.potion_type[3]*potion.quantity
     with db.engine.begin() as connection:
-        sql_to_execute = ""
-        for potion in potions_delivered:
-            if potion.quantity > 0:
-                potion_count += potion.quantity
-                for index in range(len(potion.potion_type)):
-                    ml_used[index] += potion.potion_type[index]*potion.quantity
-                sql_to_execute = """
-                                    UPDATE potions 
-                                    SET quantity = quantity + :new_quantity 
-                                    WHERE red = :red 
-                                    AND green = :green 
-                                    AND blue = :blue 
-                                    AND dark = :dark
-                                """
-                values = [
-                            {
-                                "new_quantity":potion.quantity, 
-                                "red":potion.potion_type[0], 
-                                "green":potion.potion_type[1], 
-                                "blue":potion.potion_type[2], 
-                                "dark":potion.potion_type[3]
-                            }
-                        ]
-                connection.execute(sqlalchemy.text(sql_to_execute), values)
-                potions_created.append( {"potions_delivered": potion.potion_type, "id": order_id} )
-
+        sql_to_execute = """
+                            UPDATE potions
+                            SET quantity = quantity + p.pot_quantity
+                            FROM (SELECT 
+                            UNNEST(:quantities) AS pot_quantity,
+                            UNNEST(:ml_red) AS pot_red,
+                            UNNEST(:ml_green) AS pot_green,
+                            UNNEST(:ml_blue) AS pot_blue,
+                            UNNEST(:ml_dark) AS pot_dark)
+                            AS p
+                            WHERE red = p.pot_red
+                            AND green = p.pot_green
+                            AND blue = p.pot_blue
+                            And dark = p.pot_dark
+                        """
+        values = [
+                    {
+                        "quantities":quantities, 
+                        "ml_red":ml_red, 
+                        "ml_green":ml_green, 
+                        "ml_blue":ml_blue, 
+                        "ml_dark":ml_dark
+                    }
+                ]
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
                             UPDATE global_inventory 
-                            SET num_potions = num_potions + :quantity,
-                            num_red_ml = num_red_ml - :red,
+                            SET num_red_ml = num_red_ml - :red,
                             num_green_ml = num_green_ml - :green,
                             num_blue_ml = num_blue_ml - :blue,
-                            num_dark_ml = num_dark_ml - :dark
+                            num_dark_ml = num_dark_ml - :dark,
+                            num_potions = (SELECT SUM(quantity) FROM potions)
                         """
-        values = [{"quantity":potion_count, "red":ml_used[0], "green":ml_used[1], "blue":ml_used[2], "dark":ml_used[3]}]
+        values = [{"red":ml_used[0], "green":ml_used[1], "blue":ml_used[2], "dark":ml_used[3]}]
         connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
 
-    return potions_created
+    return "OK"
 
 @router.post("/plan")
 def get_bottle_plan():
