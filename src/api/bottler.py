@@ -68,7 +68,14 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                             num_dark_ml = num_dark_ml - :dark,
                             num_potions = (SELECT SUM(quantity) FROM potions)
                         """
-        values = [{"red":ml_used[0], "green":ml_used[1], "blue":ml_used[2], "dark":ml_used[3]}]
+        values = [
+                    {
+                        "red":ml_used[0], 
+                        "green":ml_used[1], 
+                        "blue":ml_used[2], 
+                        "dark":ml_used[3]
+                    }
+                ]
         connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
 
@@ -112,10 +119,24 @@ def get_bottle_plan():
         sql_to_execute = """
                             SELECT red, green, blue, dark, quantity 
                             FROM potions 
-                            WHERE quantity < %d AND red <= %d AND green <= %d AND blue <= %d AND dark <= %d and brew = TRUE
+                            WHERE quantity < :quantity 
+                            AND red <= :red_amt 
+                            AND green <= :green_amt 
+                            AND blue <= :blue_amt 
+                            AND dark <= :dark_amt 
+                            and brew = TRUE
                             ORDER BY quantity ASC, price DESC
                         """
-        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute % (potion_threshold,ml_available[0], ml_available[1], ml_available[2], ml_available[3] )))
+        values = [
+                    {
+                        "quantity":potion_threshold, 
+                        "red_amt":ml_available[0], 
+                        "green_amt":ml_available[1], 
+                        "blue_amt":ml_available[2], 
+                        "dark_amt":ml_available[3]
+                    }
+                ]
+        potions_brewable = connection.execute(sqlalchemy.text(sql_to_execute), values)
         for potion in potions_brewable:
             unique_potions.append([potion.red, potion.green, potion.blue, potion.dark])
             desired_potion_brew_count = potion_threshold-potion.quantity
