@@ -95,7 +95,6 @@ def post_visits(visit_id: int, customers: list[Customer]):
         level_list.append(customer.level)
         name_list.append(customer.customer_name)
         class_list.append(customer.character_class)
-
         
     with db.engine.begin() as connection:
         sql_to_execute = """
