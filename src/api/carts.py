@@ -242,11 +242,12 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
 
         sql_to_execute = """
-                                INSERT INTO gold_transactions (description) 
+                                INSERT INTO gold_transactions (description, time_id) 
                                 VALUES ('CUSTOMER: ' || (SELECT id FROM customers WHERE cart_id = :cart_id LIMIT 1) ||
                                 ' AMOUNT BOUGHT: '|| (SELECT potion_quantity FROM cart_items WHERE cart_id = :cart_id) ||
                                 ' TYPE: ' || (SELECT sku FROM cart_items WHERE cart_id = :cart_id) ||
-                                ' COST: '|| (SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id)) 
+                                ' COST: '|| (SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id), 
+                                (SELECT id FROM time ORDER BY id DESC LIMIT 1)) 
                                 RETURNING id
                             """
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
