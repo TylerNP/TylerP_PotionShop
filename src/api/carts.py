@@ -84,10 +84,19 @@ def post_visits(visit_id: int, customers: list[Customer]):
     level_list = []
     name_list = []
     class_list = []
+    print(customers)
+    if not customers:
+        return [
+            {
+                "success":False
+            }
+    ]
     for customer in customers:
         level_list.append(customer.level)
         name_list.append(customer.customer_name)
         class_list.append(customer.character_class)
+
+        
     with db.engine.begin() as connection:
         sql_to_execute = """
                             CREATE TABLE current_customers (

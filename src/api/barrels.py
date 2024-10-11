@@ -87,14 +87,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection: 
         #Check to determine if can purchase
         sql_to_execute = """
-                            SELECT ml_capacity, potion_capacity, gold, num_red_ml, 
+                            SELECT ml_capacity, gold, num_red_ml, 
                                 num_green_ml, num_blue_ml, num_dark_ml 
                             FROM global_inventory
                         """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         ml_stored = [0]*4
         for result in query:
-            potion_capacity_units = result.potion_capacity
             ml_capacity_units = result.ml_capacity
             usable_gold = result.gold
             ml_stored[0] = result.num_red_ml
@@ -122,6 +121,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             remaining_ml_threshold = (ml_capacity-total_ml)
         
         #ml Needed For Immediate Brewing
+        # SIMPLIFY SQL TO 1 STATEMENT
         sql_to_execute = "SELECT (50*(SELECT potion_capacity FROM global_inventory) / (SELECT COUNT(1) FROM potions WHERE brew = TRUE))"
         potion_threshold = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
         sql_to_execute = """
