@@ -20,6 +20,10 @@ def post_time(timestamp: Timestamp):
     """
     Share current time.
     """
-    print(f"Today Is {timestamp.day} At the {timestamp.hour} hour")
+    with db.engine.begin() as connection:
+        sql_to_execute = """
+                            INSERT INTO time (day, hour) VALUES (:day, :hour)
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), [{"day":timestamp.day, "hour":timestamp.hour}])
     return "OK"
 
