@@ -124,6 +124,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         # SIMPLIFY SQL TO 1 STATEMENT
         sql_to_execute = "SELECT (50*(SELECT potion_capacity FROM global_inventory) / (SELECT COUNT(1) FROM potions WHERE brew = TRUE))"
         potion_threshold = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
+    
         sql_to_execute = """
                             SELECT quantity, red, green, blue, dark 
                             FROM potions
@@ -132,19 +133,29 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                             50*(SELECT potion_capacity FROM global_inventory LIMIT 1) / 
                             (SELECT COUNT(1) FROM potions WHERE brew = TRUE)
                         """
+        sql_to_execute = """
+                        SELECT result.threshold, quantity, red, green, blue, dark 
+                        FROM potions, (
+                            SELECT (potion_capacity * 50 / (
+                                SELECT COUNT(1) 
+                                FROM potions 
+                                WHERE brew = TRUE)) AS threshold 
+                            FROM global_inventory) AS result
+                        WHERE brew = TRUE 
+                        AND quantity < result.threshold
+                    """
         specific_pots = connection.execute(sqlalchemy.text(sql_to_execute))
         for pots in specific_pots:
-            ml_needed[0] += pots.red*(potion_threshold-pots.quantity)
-            ml_needed[1] += pots.green*(potion_threshold-pots.quantity)
-            ml_needed[2] += pots.blue*(potion_threshold-pots.quantity)
-            ml_needed[3] += pots.dark*(potion_threshold-pots.quantity)
+            ml_needed[0] += pots.red*(pots.threshold-pots.quantity)
+            ml_needed[1] += pots.green*(pots.threshold-pots.quantity)
+            ml_needed[2] += pots.blue*(pots.threshold-pots.quantity)
+            ml_needed[3] += pots.dark*(pots.threshold-pots.quantity)
 
     #Create Ratio Of ML to Purchase Using Min
     ml_count = 0
     for value in ml_needed:
         if value != 0:
             ml_count = ml_count + 1
-
     if ml_count == 0:
         ml_count = num_types
 
@@ -188,19 +199,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         else:
             ml_can_buy[index] = 0
 
-    #Buy From Most Needed Barrel Type To Least
-    """
-    min = 0
-    for ml in ml_space:
-        if min == 0 or (ml < min and ml > 0):
-            min = ml
-    ml_ratio = [round(ml_space[index]/min) if ml_can_buy[index] == 1 else 0 for index in range(num_types)]
-    """
     # Takes Dotproduct of ml_needed and ml_space and normalize to create weights for buying
     normal = 0
     make_int = 10
     for i in range(len(ml_needed)):
         normal += ml_needed[i]*ml_space[i]
+    if normal == 0:
+        normal = 1
     ml_ratio = [0]*4
     for i in range(len(ml_needed)):
         if ml_can_buy[i] != 1:
@@ -212,7 +217,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         else:
             ml_ratio[i] = round(ml_needed[i]*ml_space[i]*make_int/normal)
     ml_ratio_copy = ml_ratio.copy()
-    type_index = ml_ratio.index(max(ml_ratio))
+    max_index = ml_ratio.index(max(ml_ratio))
+    type_index = max_index
     list_of_index = [0]*num_types
     buy_count = []
     unique_barrels = []
@@ -236,6 +242,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 ml_ratio_copy[i] = ml_ratio_copy[i] + ml_ratio[i]
                 if ml_ratio_copy[i] == 0:
                     no_more += 1
+            type_index = max_index
         if no_more == num_types:
             break
         #==========================#

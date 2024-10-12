@@ -88,7 +88,7 @@ def post_visits(visit_id: int, customers: list[Customer]):
     if not customers:
         return [
             {
-                "success":False
+                "success":visited
             }
     ]
     for customer in customers:
