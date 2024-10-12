@@ -189,11 +189,28 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_can_buy[index] = 0
 
     #Buy From Most Needed Barrel Type To Least
+    """
     min = 0
     for ml in ml_space:
         if min == 0 or (ml < min and ml > 0):
             min = ml
     ml_ratio = [round(ml_space[index]/min) if ml_can_buy[index] == 1 else 0 for index in range(num_types)]
+    """
+    # Takes Dotproduct of ml_needed and ml_space and normalize to create weights for buying
+    normal = 0
+    make_int = 10
+    for i in range(len(ml_needed)):
+        normal += ml_needed[i]*ml_space[i]
+    ml_ratio = [0]*4
+    for i in range(len(ml_needed)):
+        if ml_can_buy[i] != 1:
+            ml_ratio[i] = 0
+            break
+        # Ensure To Refill Stock Even
+        if (ml_needed[i] == 0 and ml_space[i] > 0):
+            ml_ratio[i] = 1
+        else:
+            ml_ratio[i] = round(ml_needed[i]*ml_space[i]*make_int/normal)
     ml_ratio_copy = ml_ratio.copy()
     type_index = ml_ratio.index(max(ml_ratio))
     list_of_index = [0]*num_types
@@ -246,7 +263,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 list_of_index[type_index] = list_of_index[type_index] + 1
                 continue
             buy_count[unique_barrels.index(barrel_to_buy)] = new_quantity
-        relative_change = round(barrel_to_buy.ml_per_barrel/min)
+        relative_change = round(barrel_to_buy.ml_per_barrel*make_int/normal)
         if relative_change < buy_amt:
             relative_change = buy_amt
         ml_ratio_copy[type_index] = ml_ratio_copy[type_index] - relative_change
