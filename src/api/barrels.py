@@ -73,8 +73,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     #TO DO improve barrel planning logic
 
     plan = []
-    ml_types = ["red", "green", "blue", "dark"]
-    num_types = len(ml_types)
+    num_types = 4
     ml_needed = [0]*num_types
     ml_available = [0]*num_types
     ml_space = [0]*num_types
@@ -83,18 +82,19 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     remaining_ml_threshold = 0
     ml_threshold = 0
     overflow_count = 0
+    ml_capacity = 0
 
     with db.engine.begin() as connection: 
         #Check to determine if can purchase
         sql_to_execute = """
-                            SELECT ml_capacity, gold, num_red_ml, 
+                            SELECT (10000*ml_capacity) AS capacity, gold, num_red_ml, 
                                 num_green_ml, num_blue_ml, num_dark_ml 
                             FROM global_inventory
                         """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         ml_stored = [0]*4
         for result in query:
-            ml_capacity_units = result.ml_capacity
+            ml_capacity = result.capacity
             usable_gold = result.gold
             ml_stored[0] = result.num_red_ml
             ml_stored[1] = result.num_green_ml
@@ -102,12 +102,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_stored[3] = result.num_dark_ml
 
         usable_gold = usable_gold-gold_threshold
-        ml_per_capacity = 10000
-        ml_capacity = ml_capacity_units * ml_per_capacity
         ml_threshold = ml_capacity//num_types
         total_ml = 0
         over_threshold = False
-        for index in range(len(ml_types)):
+        for index in range(len(ml_needed)):
             if ml_stored[index] > ml_threshold:
                 over_threshold = True
                 overflow_count = overflow_count + 1
@@ -121,18 +119,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             remaining_ml_threshold = (ml_capacity-total_ml)
         
         #ml Needed For Immediate Brewing
-        # SIMPLIFY SQL TO 1 STATEMENT
-        sql_to_execute = "SELECT (50*(SELECT potion_capacity FROM global_inventory) / (SELECT COUNT(1) FROM potions WHERE brew = TRUE))"
-        potion_threshold = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
-    
-        sql_to_execute = """
-                            SELECT quantity, red, green, blue, dark 
-                            FROM potions
-                            WHERE brew = TRUE 
-                            AND quantity < 
-                            50*(SELECT potion_capacity FROM global_inventory LIMIT 1) / 
-                            (SELECT COUNT(1) FROM potions WHERE brew = TRUE)
-                        """
         sql_to_execute = """
                         SELECT result.threshold, quantity, red, green, blue, dark 
                         FROM potions, (
