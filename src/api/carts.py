@@ -246,12 +246,11 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                                 VALUES ('CUSTOMER: ' || (SELECT id FROM customers WHERE cart_id = :cart_id LIMIT 1) ||
                                 ' AMOUNT BOUGHT: '|| (SELECT potion_quantity FROM cart_items WHERE cart_id = :cart_id) ||
                                 ' TYPE: ' || (SELECT sku FROM cart_items WHERE cart_id = :cart_id) ||
-                                ' COST: '|| (SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id) ||
-                                ' WITH: :payment', 
+                                ' COST: '|| (SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id), 
                                 (SELECT id FROM time ORDER BY id DESC LIMIT 1)) 
                                 RETURNING id
                             """
-        transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id, "payment":cart_checkout}).scalar()
+        transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
         # REPLACE BELOW LATER 
         sql_to_execute = "UPDATE customer_ledgers SET transaction_id = :id WHERE cart_id = :cart_id"
         connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id, "id":transaction_id})
