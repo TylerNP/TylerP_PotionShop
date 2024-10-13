@@ -61,20 +61,21 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            INSERT INTO potion_ledgers (sku, quantity)
-                            FROM (SELECT 
-                            UNNEST(:quantities) AS pot_quantity,
-                            UNNEST(:ml_red) AS pot_red,
-                            UNNEST(:ml_green) AS pot_green,
-                            UNNEST(:ml_blue) AS pot_blue,
-                            UNNEST(:ml_dark) AS pot_dark)
-                            AS p
-                            WHERE red = p.pot_red
-                            AND green = p.pot_green
-                            AND blue = p.pot_blue
-                            And dark = p.pot_dark
+                            INSERT INTO potion_ledgers (sku, quantity, time_id)
+                            SELECT p.sku, q.pot_quantity, 
+                                (SELECT time.id FROM time ORDER BY time.id LIMIT 1) 
+                            FROM potions AS p, 
+                                (SELECT UNNEST(:ml_red) AS pot_red, 
+                                UNNEST(:ml_green) AS pot_green, 
+                                UNNEST(:ml_blue) AS pot_blue, 
+                                UNNEST(:ml_dark) AS pot_dark, 
+                                UNNEST(:quantities) AS pot_quantity) AS q
+                            WHERE q.pot_red = p.red 
+                            AND q.pot_green = p.green
+                            AND q.pot_blue = p.blue
+                            AND q.pot_dark = p.dark
                         """
-        #connection.execute(sqlalchemy.text(sql_to_execute), values)
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
                             UPDATE global_inventory 
                             SET num_red_ml = num_red_ml - :red,
