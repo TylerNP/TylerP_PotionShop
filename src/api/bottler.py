@@ -35,6 +35,15 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         ml_used[2] += potion.potion_type[2]*potion.quantity
         ml_used[3] += potion.potion_type[3]*potion.quantity
     with db.engine.begin() as connection:
+        values = [
+                    {
+                        "quantities":quantities, 
+                        "ml_red":ml_red, 
+                        "ml_green":ml_green, 
+                        "ml_blue":ml_blue, 
+                        "ml_dark":ml_dark
+                    }
+                ]
         sql_to_execute = """
                             UPDATE potions
                             SET quantity = quantity + p.pot_quantity
@@ -50,16 +59,22 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                             AND blue = p.pot_blue
                             And dark = p.pot_dark
                         """
-        values = [
-                    {
-                        "quantities":quantities, 
-                        "ml_red":ml_red, 
-                        "ml_green":ml_green, 
-                        "ml_blue":ml_blue, 
-                        "ml_dark":ml_dark
-                    }
-                ]
         connection.execute(sqlalchemy.text(sql_to_execute), values)
+        sql_to_execute = """
+                            INSERT INTO potion_ledgers (sku, quantity)
+                            FROM (SELECT 
+                            UNNEST(:quantities) AS pot_quantity,
+                            UNNEST(:ml_red) AS pot_red,
+                            UNNEST(:ml_green) AS pot_green,
+                            UNNEST(:ml_blue) AS pot_blue,
+                            UNNEST(:ml_dark) AS pot_dark)
+                            AS p
+                            WHERE red = p.pot_red
+                            AND green = p.pot_green
+                            AND blue = p.pot_blue
+                            And dark = p.pot_dark
+                        """
+        #connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
                             UPDATE global_inventory 
                             SET num_red_ml = num_red_ml - :red,
