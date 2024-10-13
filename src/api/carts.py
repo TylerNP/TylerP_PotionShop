@@ -96,9 +96,26 @@ def post_visits(visit_id: int, customers: list[Customer]):
         class_list.append(customer.character_class)
         
     with db.engine.begin() as connection:
+        values = [
+                    {
+                        "visit_id":visit_id, 
+                        "level_list":level_list, 
+                        "name_list":name_list, 
+                        "class_list":class_list
+                    }
+                ]
         sql_to_execute = """
-                            INSERT INTO customers (visit_id, level, customer_name, customer_class)
-                            SELECT :visit_id, c_customer.c_level, c_customer.c_customer_name, c_customer.c_customer_class 
+                            INSERT INTO customer_visits (visit_id, time_id, customer_id) 
+                            SELECT :visit_id, (SELECT time.id FROM time ORDER BY id DESC LIMIT 1), customers.id 
+                            FROM customers, UNNEST(:level_list, :name_list, :class_list) AS new (level_item, name_item, class_item)
+                            WHERE new.level_item = customers.level
+                            AND new.name_item = customers.customer_name
+                            AND new.class_item = customers.customer_class
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
+        sql_to_execute = """
+                            INSERT INTO customers (level, customer_name, customer_class)
+                            SELECT c_customer.c_level, c_customer.c_customer_name, c_customer.c_customer_class 
                             FROM UNNEST(:level_list, :name_list, :class_list)
                             AS c_customer (c_level, c_customer_name, c_customer_class)
                             LEFT JOIN customers AS c
@@ -109,26 +126,7 @@ def post_visits(visit_id: int, customers: list[Customer]):
                             AND c.customer_name is NULL
                             And c.customer_class is NULL
                         """
-        values = [
-                    {
-                        "visit_id":visit_id, 
-                        "level_list":level_list, 
-                        "name_list":name_list, 
-                        "class_list":class_list
-                    }
-                ]
         connection.execute(sqlalchemy.text(sql_to_execute), values)
-        sql_to_execute = """
-                            UPDATE customers 
-                            SET visit_id = :visit_id
-                            FROM UNNEST(:level_list, :name_list, :class_list)
-                            AS c_customer (c_level, c_customer_name, c_customer_class)
-                            WHERE level = c_customer.c_level
-                            AND customer_name = c_customer.c_customer_name
-                            AND customer_class = c_customer.c_customer_class
-                        """
-        connection.execute(sqlalchemy.text(sql_to_execute), values)
-        #connection.execute(sqlalchemy.text("DROP TABLE current_customers"))
         visited = True
 
     return [
