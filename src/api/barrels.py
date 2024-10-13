@@ -56,8 +56,21 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                         "dark_bought":ml_bought[3]
                     }
                 ]
+        connection.execute(sqlalchemy.text(sql_to_execute), values) 
+        sql_to_execute = """
+                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, time_id)
+                            VALUES (:red, :green, :blue, :dark, :order_id, (SELECT id FROM time ORDER BY id DESC LIMIT 1))
+                        """
+        values = [
+                    {
+                        "red":ml_bought[0],
+                        "green":ml_bought[1],
+                        "blue":ml_bought[2],
+                        "dark":ml_bought[3],
+                        "order_id":order_id
+                    }
+                ]
         connection.execute(sqlalchemy.text(sql_to_execute), values)
-
     for index in range(len(ml_type)):
         print("Bought %d %s ml" % (ml_bought[index], ml_type[index]))
     return "OK"
@@ -176,7 +189,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     if overflow_count > 0:
         #Trys to Refill the low values as fast as possible
         if (num_types-overflow_count-not_buyable_count) == 0:
-            return []
+            return plan
         ml_max = remaining_ml_threshold // (num_types-overflow_count-not_buyable_count)
     for index in range(num_types):
         ml_space_remain = ml_max - ml_available[index]
@@ -194,9 +207,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         normal = 1
     ml_ratio = [0]*4
     for i in range(len(ml_needed)):
-        if ml_can_buy[i] != 1:
+        if ml_can_buy[i] == 0:
             ml_ratio[i] = 0
-            break
+            continue
         # Ensure To Refill Stock Even
         if (ml_needed[i] == 0 and ml_space[i] > 0):
             ml_ratio[i] = 1
