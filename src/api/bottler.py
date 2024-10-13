@@ -63,7 +63,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         sql_to_execute = """
                             INSERT INTO potion_ledgers (sku, quantity, time_id)
                             SELECT p.sku, q.pot_quantity, 
-                                (SELECT time.id FROM time ORDER BY time.id LIMIT 1) 
+                                (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1) 
                             FROM potions AS p, 
                                 (SELECT UNNEST(:ml_red) AS pot_red, 
                                 UNNEST(:ml_green) AS pot_green, 
