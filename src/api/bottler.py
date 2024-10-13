@@ -77,6 +77,20 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                     }
                 ]
         connection.execute(sqlalchemy.text(sql_to_execute), values)
+        sql_to_execute = """
+                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, time_id)
+                            VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :order_id, (SELECT time.id FROM time ORDER BY id DESC LIMIT 1))
+                        """
+        values = [
+                    {
+                        "red":ml_used[0], 
+                        "green":ml_used[1], 
+                        "blue":ml_used[2], 
+                        "dark":ml_used[3],
+                        "order_id":order_id
+                    }
+                ]
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
 
     return "OK"
