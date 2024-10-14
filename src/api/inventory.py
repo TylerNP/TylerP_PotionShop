@@ -66,7 +66,7 @@ def get_capacity_plan():
     if ml_total > ml_capacity*ml_per_capacity and potion_count > potion_capacity*potion_per_capacity:
         double = 2
         ml_capacity_desired = double * ml_capacity_desired 
-        potion_capacity_desired = double * ml_capacity_desired
+        potion_capacity_desired = ml_capacity_desired
         ml_capacity_bought = ml_capacity_desired - ml_capacity
         potion_capacity_bought = potion_capacity_desired - potion_capacity
         if usable_gold < cost_per_capacity*(ml_capacity_bought+potion_capacity_bought):
