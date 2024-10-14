@@ -49,8 +49,8 @@ def get_capacity_plan():
             
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
-            divide_half = 2
-            usable_gold = result.gold // divide_half
+            divide_third = 3
+            usable_gold = result.gold // divide_third
             ml_capacity = result.ml_capacity
             potion_capacity = result.potion_capacity
             potion_count = result.num_potions
@@ -63,15 +63,14 @@ def get_capacity_plan():
     ml_capacity_bought = 0
 
     # Only buy capacity to double storage 
-    if ml_total > ml_capacity*ml_per_capacity//2 and potion_count > potion_capacity*potion_per_capacity//2:
-        double = 2
-        ml_capacity_desired = double * ml_capacity_desired 
-        potion_capacity_desired = ml_capacity_desired
-        ml_capacity_bought = ml_capacity_desired - ml_capacity
-        potion_capacity_bought = potion_capacity_desired - potion_capacity
-        if usable_gold < cost_per_capacity*(ml_capacity_bought+potion_capacity_bought):
-            ml_capacity_bought = 0
-            potion_capacity_bought = 0
+    double = 2
+    ml_capacity_desired = double * ml_capacity_desired 
+    potion_capacity_desired = ml_capacity_desired
+    ml_capacity_bought = ml_capacity_desired - ml_capacity
+    potion_capacity_bought = potion_capacity_desired - potion_capacity
+    if usable_gold < cost_per_capacity*(ml_capacity_bought+potion_capacity_bought):
+        ml_capacity_bought = 0
+        potion_capacity_bought = 0
  
     print(f"Bought {potion_capacity_bought} potion_capacity and {ml_capacity_bought} ml_capacity")
     return {
