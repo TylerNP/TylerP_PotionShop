@@ -63,7 +63,7 @@ def get_capacity_plan():
     ml_capacity_bought = 0
 
     # Only buy capacity to double storage 
-    if ml_total > ml_capacity*ml_per_capacity and potion_count > potion_capacity*potion_per_capacity:
+    if ml_total > ml_capacity*ml_per_capacity//2 and potion_count > potion_capacity*potion_per_capacity//2:
         double = 2
         ml_capacity_desired = double * ml_capacity_desired 
         potion_capacity_desired = ml_capacity_desired
