@@ -194,7 +194,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
             connection.execute(sqlalchemy.text(sql_to_execute), values)
             sql_to_execute = """
                                 INSERT INTO customer_ledgers (gold_cost, cart_id, customer_id, time_id) 
-                                VALUES (:gold_cost, :cart_id, (SELECT customers.id FROM customers WHERE cart_id = :cart_id), (SELECT time.id FROM time ORDER BY id DESC LIMIT 1))
+                                VALUES (:gold_cost, :cart_id, (SELECT customers.id FROM customers WHERE cart_id = :cart_id), (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1))
                             """
             values = [
                         {
