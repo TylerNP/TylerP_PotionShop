@@ -192,17 +192,6 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                         }
                     ]
             connection.execute(sqlalchemy.text(sql_to_execute), values)
-            sql_to_execute = """
-                                INSERT INTO customer_ledgers (gold_cost, cart_id, customer_id, time_id) 
-                                VALUES (:gold_cost, :cart_id, (SELECT customers.id FROM customers WHERE cart_id = :cart_id), (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1))
-                            """
-            values = [
-                        {
-                            "gold_cost": cart_item.quantity*price, 
-                            "cart_id":cart_id
-                        }
-                    ]
-            connection.execute(sqlalchemy.text(sql_to_execute), values)
             bought = True
 
     return { "success": bought }
@@ -219,6 +208,37 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     gold_total = 0
     with db.engine.begin() as connection: 
         sql_to_execute = """
+                            INSERT INTO gold_transactions (description, time_id) 
+                            VALUES ('CUSTOMER: ' || 
+                            (SELECT id FROM customers WHERE cart_id = :cart_id LIMIT 1) ||
+                            ' AMOUNT BOUGHT: '|| (SELECT potion_quantity FROM cart_items WHERE cart_id = :cart_id) ||
+                            ' TYPE: ' || (SELECT sku FROM cart_items WHERE cart_id= :cart_id) ||
+                            ' COST: '|| (SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id), 
+                            (SELECT id FROM time ORDER BY id DESC LIMIT 1)) 
+                            RETURNING id
+                        """
+        transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
+        sql_to_execute = """
+                            INSERT INTO customer_ledgers (gold_cost, transaction_id, customer_id, time_id) 
+                            VALUES (
+                                (SELECT SUM(potion_quantity*
+                                    (SELECT potions.price FROM potions 
+                                    WHERE potions.sku = cart_items.sku)) 
+                                FROM cart_items), :transaction_id, 
+                                (SELECT customers.id FROM customers 
+                                WHERE cart_id = :cart_id), 
+                                (SELECT time.id FROM time 
+                                ORDER BY time.id DESC LIMIT 1)
+                                )
+                        """
+        values = [
+                    {
+                        "cart_id":cart_id,
+                        "transaction_id":transaction_id
+                    }
+                ]
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
+        sql_to_execute = """
                             UPDATE potions SET quantity = quantity - potion_quantity
                             FROM cart_items AS ci
                             WHERE cart_id = :cart_id
@@ -228,9 +248,9 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         sql_to_execute = """
                             UPDATE global_inventory 
                             SET num_potions = num_potions - (SELECT SUM(potion_quantity) FROM cart_items WHERE cart_id = :cart_id), 
-                            gold = gold + (SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id)
+                            gold = gold + (SELECT SUM(gold_cost) FROM customer_ledgers WHERE transaction_id = :transaction_id)
                         """
-        connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
+        connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id, "transaction_id":transaction_id})
         sql_to_execute = """
                             INSERT INTO potion_ledgers (sku, quantity, time_id)
                             SELECT cart_items.sku, (-1*cart_items.potion_quantity), 
@@ -239,21 +259,8 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                             WHERE cart_id = :cart_id
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
-        sql_to_execute = """
-                            INSERT INTO gold_transactions (description, time_id) 
-                            VALUES ('CUSTOMER: ' || 
-                            (SELECT id FROM customers WHERE cart_id = :cart_id LIMIT 1) ||
-                            ' AMOUNT BOUGHT: '|| (SELECT potion_quantity FROM cart_items WHERE cart_id = :cart_id) ||
-                            ' TYPE: ' || (SELECT sku FROM cart_items WHERE cart_id = :cart_id) ||
-                            ' COST: '|| (SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id), 
-                            (SELECT id FROM time ORDER BY id DESC LIMIT 1)) 
-                            RETURNING id
-                        """
-        transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
         # REPLACE BELOW LATER 
-        sql_to_execute = "UPDATE customer_ledgers SET transaction_id = :id WHERE cart_id = :cart_id"
-        connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id, "id":transaction_id})
-        sql_to_execute = "SELECT SUM(gold_cost) FROM customer_ledgers WHERE cart_id = :cart_id"
+        sql_to_execute = "SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id"
         gold_total = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
         sql_to_execute = "SELECT SUM(potion_quantity) FROM cart_items WHERE cart_id = :cart_id"
         total_potions = connection.execute(sqlalchemy.text(sql_to_execute), [{"cart_id":cart_id}]).scalar()
