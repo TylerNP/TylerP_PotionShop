@@ -64,7 +64,7 @@ def get_capacity_plan():
 
     # Only buy capacity to double storage 
     double = 2
-    ml_capacity_desired = double * ml_capacity_desired 
+    ml_capacity_desired = double * ml_capacity 
     potion_capacity_desired = ml_capacity_desired
     ml_capacity_bought = ml_capacity_desired - ml_capacity
     potion_capacity_bought = potion_capacity_desired - potion_capacity
