@@ -224,7 +224,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                                 (SELECT SUM(potion_quantity*
                                     (SELECT potions.price FROM potions 
                                     WHERE potions.sku = cart_items.sku)) 
-                                FROM cart_items WHERE cart_id = :cart_id)), :transaction_id, 
+                                FROM cart_items WHERE cart_id = :cart_id), :transaction_id, 
                                 (SELECT customers.id FROM customers 
                                 WHERE cart_id = :cart_id), 
                                 (SELECT time.id FROM time 
