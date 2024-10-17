@@ -208,7 +208,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     gold_total = 0
     with db.engine.begin() as connection: 
         sql_to_execute = """
-                            INSERT INTO gold_transactions (description, time_id) 
+                            INSERT INTO transactions (description, time_id) 
                             VALUES ('CUSTOMER: ' || 
                             (SELECT id FROM customers WHERE cart_id = :cart_id LIMIT 1) ||
                             ' AMOUNT BOUGHT: '|| (SELECT potion_quantity FROM cart_items WHERE cart_id = :cart_id) ||
