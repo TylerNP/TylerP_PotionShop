@@ -275,7 +275,5 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         sql_to_execute = "SELECT SUM(potion_quantity) FROM cart_items WHERE cart_id = :cart_id"
         total_potions = connection.execute(sqlalchemy.text(sql_to_execute), [{"cart_id":cart_id}]).scalar()
         # REPLACE ABOVE LATER
-        sql_to_execute = "DELETE FROM carts WHERE id = :id"
-        connection.execute(sqlalchemy.text(sql_to_execute), {"id":cart_id})
 
     return {"total_potions_bought": total_potions, "total_gold_paid": gold_total}
