@@ -270,10 +270,19 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         # REPLACE BELOW LATER 
-        sql_to_execute = "SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id"
-        gold_total = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
-        sql_to_execute = "SELECT SUM(potion_quantity) FROM cart_items WHERE cart_id = :cart_id"
-        total_potions = connection.execute(sqlalchemy.text(sql_to_execute), [{"cart_id":cart_id}]).scalar()
+        sql_to_execute = """SELECT 
+                            SUM(potion_quantity*
+                                (SELECT potions.price FROM potions 
+                                WHERE potions.sku = cart_items.sku)) AS gold_total, 
+                            SUM(potion_quantity) AS total_potions
+                            FROM cart_items WHERE cart_id = :cart_id
+                        """
+        results = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
+        gold_total = 0
+        total_potions = 0
+        for result in results:
+            gold_total = result.gold_total
+            total_potions = result.total_potions
         # REPLACE ABOVE LATER
 
     return {"total_potions_bought": total_potions, "total_gold_paid": gold_total}
