@@ -35,15 +35,14 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         ml_used[2] += potion.potion_type[2]*potion.quantity
         ml_used[3] += potion.potion_type[3]*potion.quantity
     with db.engine.begin() as connection:
-        values = [
-                    {
-                        "quantities":quantities, 
-                        "ml_red":ml_red, 
-                        "ml_green":ml_green, 
-                        "ml_blue":ml_blue, 
-                        "ml_dark":ml_dark
-                    }
-                ]
+        values = {
+                    "quantities":quantities, 
+                    "ml_red":ml_red, 
+                    "ml_green":ml_green, 
+                    "ml_blue":ml_blue, 
+                    "ml_dark":ml_dark,
+                    "order_id":order_id
+                }
         sql_to_execute = """
                             UPDATE potions
                             SET quantity = quantity + p.pot_quantity
@@ -61,8 +60,31 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            INSERT INTO potion_ledgers (sku, quantity, time_id)
-                            SELECT p.sku, q.pot_quantity, 
+                            INSERT INTO transactions (description, time_id)
+                            VALUES (
+                                    'Brewed: ' || (
+                                                    SELECT p.pot_quantity || ' ' || potions.sku || ', ' as details
+                                                    FROM potions, (
+                                                        SELECT UNNEST(:quantities) AS pot_quantity,
+                                                        UNNEST(:ml_red) AS pot_red,
+                                                        UNNEST(:ml_green) AS pot_green,
+                                                        UNNEST(:ml_blue) AS pot_blue,
+                                                        UNNEST(:ml_dark) AS pot_dark)
+                                                        AS p
+                                                    WHERE red = p.pot_red
+                                                    AND green = p.pot_green
+                                                    AND blue = p.pot_blue
+                                                    And dark = p.pot_dark
+                                                    ), 
+                                    (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1)
+                                    ) 
+                            RETURNING id
+                        """
+        transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
+        values["transaction_id"] = transaction_id
+        sql_to_execute = """
+                            INSERT INTO potion_ledgers (sku, quantity, order_id, transaction_id, time_id)
+                            SELECT p.sku, q.pot_quantity, :order_id, :transaction_id, 
                                 (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1) 
                             FROM potions AS p, 
                                 (SELECT UNNEST(:ml_red) AS pot_red, 
@@ -84,19 +106,18 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                             num_dark_ml = num_dark_ml - :dark,
                             num_potions = (SELECT SUM(quantity) FROM potions)
                         """
-        values = [
-                    {
-                        "red":ml_used[0], 
-                        "green":ml_used[1], 
-                        "blue":ml_used[2], 
-                        "dark":ml_used[3],
-                        "order_id":order_id
-                    }
-                ]
+        values = {
+                    "red":ml_used[0], 
+                    "green":ml_used[1], 
+                    "blue":ml_used[2], 
+                    "dark":ml_used[3],
+                    "order_id":order_id,
+                    "transaction_id":transaction_id
+                }
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, time_id)
-                            VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :order_id, (SELECT time.id FROM time ORDER BY id DESC LIMIT 1))
+                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, transaction_id, time_id)
+                            VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :order_id, :transaction_id, (SELECT time.id FROM time ORDER BY id DESC LIMIT 1))
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
