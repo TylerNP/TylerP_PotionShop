@@ -39,38 +39,47 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
         barrels_sent.append( {"barrels delivered": barrel, "order_id": order_id} )
         
     with db.engine.begin() as connection: 
+        values = {
+                        "gold_cost":gold_cost, 
+                        "red":ml_bought[0], 
+                        "green":ml_bought[1], 
+                        "blue":ml_bought[2], 
+                        "dark":ml_bought[3],
+                        "order_id":order_id,
+                }
+        sql_to_execute = """
+                            INSERT INTO transactions (description, time_id)
+                            VALUES (
+                                    'Bought ' ||  
+                                    :red || ' red ml ' || 
+                                    :green || ' green ml ' || 
+                                    :blue || ' blue ml ' || 
+                                    :dark || ' dark ml for ' || 
+                                    :gold_cost, 
+                                    (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1)
+                                    ) 
+                            RETURNING id
+                        """
+        values["transaction_id"] = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
+        sql_to_execute = """
+                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, transaction_id, time_id)
+                            VALUES (:red, :green, :blue, :dark, :order_id, :transaction_id, (SELECT id FROM time ORDER BY id DESC LIMIT 1))
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
+        sql_to_execute = """
+                            INSERT INTO gold_ledgers (gold, transaction_id, time_id)
+                            VALUES (:gold_cost, :transaction_id, (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1))
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
                             UPDATE global_inventory 
                             SET gold = gold - :gold_cost,
-                            num_red_ml = num_red_ml + :red_bought,
-                            num_green_ml = num_green_ml + :green_bought,
-                            num_blue_ml = num_blue_ml + :blue_bought,
-                            num_dark_ml = num_dark_ml + :dark_bought
+                            num_red_ml = num_red_ml + :red,
+                            num_green_ml = num_green_ml + :green,
+                            num_blue_ml = num_blue_ml + :blue,
+                            num_dark_ml = num_dark_ml + :dark
                         """
-        values = [
-                    {
-                        "gold_cost":gold_cost, 
-                        "red_bought":ml_bought[0], 
-                        "green_bought":ml_bought[1], 
-                        "blue_bought":ml_bought[2], 
-                        "dark_bought":ml_bought[3]
-                    }
-                ]
         connection.execute(sqlalchemy.text(sql_to_execute), values) 
-        sql_to_execute = """
-                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, time_id)
-                            VALUES (:red, :green, :blue, :dark, :order_id, (SELECT id FROM time ORDER BY id DESC LIMIT 1))
-                        """
-        values = [
-                    {
-                        "red":ml_bought[0],
-                        "green":ml_bought[1],
-                        "blue":ml_bought[2],
-                        "dark":ml_bought[3],
-                        "order_id":order_id
-                    }
-                ]
-        connection.execute(sqlalchemy.text(sql_to_execute), values)
     for index in range(len(ml_type)):
         print("Bought %d %s ml" % (ml_bought[index], ml_type[index]))
     return "OK"
