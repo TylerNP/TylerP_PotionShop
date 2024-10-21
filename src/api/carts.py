@@ -143,22 +143,23 @@ def create_cart(new_cart: Customer):
     """
     new_id = 0
     with db.engine.begin() as connection: 
-        new_id = connection.execute(sqlalchemy.text("INSERT INTO carts DEFAULT VALUES RETURNING id")).scalar()
         sql_to_execute = """
-                            UPDATE customers SET cart_id = :cart_id
+                            INSERT INTO carts (customer_id)
+                            SELECT customers.id FROM customers 
                             WHERE customer_name = :customer_name 
                             AND customer_class = :customer_class
                             AND level = :level
+                            LIMIT 1
+                            RETURNING id
                         """
         values = [
                     {
-                        "cart_id": new_id, 
                         "customer_name": new_cart.customer_name, 
                         "customer_class": new_cart.character_class, 
                         "level": new_cart.level
                     }
                 ]
-        connection.execute(sqlalchemy.text(sql_to_execute), values)
+        new_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
     print("cart_id: %d" % new_id)
 
     return {"cart_id": new_id}
@@ -176,21 +177,17 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     bought = False
     with db.engine.begin() as connection:
         amt = 0
-        price = 0
         sql_to_execute = "SELECT quantity, price FROM potions WHERE sku =:sku LIMIT 1"
         potions = connection.execute(sqlalchemy.text(sql_to_execute), {"sku":item_sku})
         for potion in potions:
             amt = potion.quantity
-            price = int(potion.price)
         if cart_item.quantity <= amt:
             sql_to_execute = "INSERT INTO cart_items (cart_id, sku, potion_quantity) VALUES (:cart_id, :sku, :quantity)"
-            values = [
-                        {
-                            "cart_id": cart_id, 
-                            "sku": item_sku, 
-                            "quantity":cart_item.quantity
-                        }
-                    ]
+            values = {
+                        "cart_id": cart_id, 
+                        "sku": item_sku, 
+                        "quantity":cart_item.quantity
+                    }
             connection.execute(sqlalchemy.text(sql_to_execute), values)
             bought = True
 
@@ -210,7 +207,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         sql_to_execute = """
                             INSERT INTO transactions (description, time_id) 
                             VALUES ('CUSTOMER: ' || 
-                            (SELECT id FROM customers WHERE cart_id = :cart_id LIMIT 1) ||
+                            (SELECT customer_id FROM carts WHERE id = :cart_id LIMIT 1) ||
                             ' AMOUNT BOUGHT: '|| (SELECT potion_quantity FROM cart_items WHERE cart_id = :cart_id) ||
                             ' TYPE: ' || (SELECT sku FROM cart_items WHERE cart_id= :cart_id) ||
                             ' COST: '|| (SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id), 
@@ -219,16 +216,17 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                         """
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
         sql_to_execute = """
-                            INSERT INTO customer_purchases (gold_cost, transaction_id, customer_id, time_id) 
+                            INSERT INTO customer_purchases (gold_cost, transaction_id, customer_id, time_id, cart_id) 
                             VALUES (
                                 (SELECT SUM(potion_quantity*
                                     (SELECT potions.price FROM potions 
                                     WHERE potions.sku = cart_items.sku)) 
                                 FROM cart_items WHERE cart_id = :cart_id), :transaction_id, 
-                                (SELECT customers.id FROM customers 
-                                WHERE cart_id = :cart_id), 
+                                (SELECT customer_id FROM carts
+                                WHERE id = :cart_id LIMIT 1), 
                                 (SELECT time.id FROM time 
-                                ORDER BY time.id DESC LIMIT 1)
+                                ORDER BY time.id DESC LIMIT 1),
+                                :cart_id
                                 )
                         """
         values = [
@@ -248,7 +246,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         sql_to_execute = """
                             UPDATE global_inventory 
                             SET num_potions = num_potions - (SELECT SUM(potion_quantity) FROM cart_items WHERE cart_id = :cart_id), 
-                            gold = gold + (SELECT SUM(gold_cost) FROM customer_purchases WHERE transaction_id = :transaction_id)
+                            gold = gold + (SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
@@ -263,7 +261,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         sql_to_execute = """
                             INSERT INTO gold_ledgers (gold, time_id, transaction_id)
                             VALUES (
-                                (SELECT SUM(gold_cost) FROM customer_purchases WHERE transaction_id = :transaction_id), 
+                                (SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id), 
                                 (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1), 
                                 :transaction_id 
                                 )
