@@ -60,24 +60,27 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
+                            SELECT 'Brewed: ' || p.pot_quantity || ' ' || potions.sku || ', ' as details
+                            FROM potions, (
+                                SELECT UNNEST(:quantities) AS pot_quantity,
+                                UNNEST(:ml_red) AS pot_red,
+                                UNNEST(:ml_green) AS pot_green,
+                                UNNEST(:ml_blue) AS pot_blue,
+                                UNNEST(:ml_dark) AS pot_dark)
+                                AS p
+                            WHERE red = p.pot_red
+                            AND green = p.pot_green
+                            AND blue = p.pot_blue
+                            And dark = p.pot_dark
+                        """
+        texts = connection.execute(sqlalchemy.text(sql_to_execute), values)
+        concat_text = ""
+        for text in texts:
+            concat_text = concat_text + text.details
+        values["text"] = concat_text
+        sql_to_execute = """
                             INSERT INTO transactions (description, time_id)
-                            VALUES (
-                                    'Brewed: ' || (
-                                                    SELECT p.pot_quantity || ' ' || potions.sku || ', ' as details
-                                                    FROM potions, (
-                                                        SELECT UNNEST(:quantities) AS pot_quantity,
-                                                        UNNEST(:ml_red) AS pot_red,
-                                                        UNNEST(:ml_green) AS pot_green,
-                                                        UNNEST(:ml_blue) AS pot_blue,
-                                                        UNNEST(:ml_dark) AS pot_dark)
-                                                        AS p
-                                                    WHERE red = p.pot_red
-                                                    AND green = p.pot_green
-                                                    AND blue = p.pot_blue
-                                                    And dark = p.pot_dark
-                                                    ), 
-                                    (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1)
-                                    ) 
+                            VALUES (:text, (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1))
                             RETURNING id
                         """
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
