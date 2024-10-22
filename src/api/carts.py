@@ -250,19 +250,17 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            INSERT INTO potion_ledgers (sku, quantity, time_id, transaction_id)
+                            INSERT INTO potion_ledgers (sku, quantity, transaction_id)
                             SELECT cart_items.sku, (-1*cart_items.potion_quantity), 
-                                (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1),
                                 :transaction_id
                             FROM cart_items
                             WHERE cart_id = :cart_id
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            INSERT INTO gold_ledgers (gold, time_id, transaction_id)
+                            INSERT INTO gold_ledgers (gold, transaction_id)
                             VALUES (
                                 (SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id), 
-                                (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1), 
                                 :transaction_id 
                                 )
                         """

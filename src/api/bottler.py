@@ -86,9 +86,8 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
         values["transaction_id"] = transaction_id
         sql_to_execute = """
-                            INSERT INTO potion_ledgers (sku, quantity, order_id, transaction_id, time_id)
-                            SELECT p.sku, q.pot_quantity, :order_id, :transaction_id, 
-                                (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1) 
+                            INSERT INTO potion_ledgers (sku, quantity, order_id, transaction_id)
+                            SELECT p.sku, q.pot_quantity, :order_id, :transaction_id 
                             FROM potions AS p, 
                                 (SELECT UNNEST(:ml_red) AS pot_red, 
                                 UNNEST(:ml_green) AS pot_green, 
@@ -119,8 +118,8 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                 }
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, transaction_id, time_id)
-                            VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :order_id, :transaction_id, (SELECT time.id FROM time ORDER BY id DESC LIMIT 1))
+                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, transaction_id)
+                            VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :order_id, :transaction_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))

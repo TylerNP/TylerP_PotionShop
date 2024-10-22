@@ -62,13 +62,13 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                         """
         values["transaction_id"] = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
         sql_to_execute = """
-                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, transaction_id, time_id)
-                            VALUES (:red, :green, :blue, :dark, :order_id, :transaction_id, (SELECT id FROM time ORDER BY id DESC LIMIT 1))
+                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, transaction_id)
+                            VALUES (:red, :green, :blue, :dark, :order_id, :transaction_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            INSERT INTO gold_ledgers (gold, transaction_id, time_id)
-                            VALUES (:gold_cost, :transaction_id, (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1))
+                            INSERT INTO gold_ledgers (gold, transaction_id)
+                            VALUES (:gold_cost, :transaction_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
