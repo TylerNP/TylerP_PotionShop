@@ -137,7 +137,6 @@ def get_bottle_plan():
     # Expressed in integers from 1 to 100 that must sum up to 100.
     ml_available = [0]*4
     ml_max = [0]*4
-    ml_types = ["red", "green", "blue", "dark"]
     unique_potions = []
     potion_brew_amount = []
     potion_storage_left = 0
@@ -190,17 +189,22 @@ def get_bottle_plan():
             ml_max[2] += potion.blue*desired_potion_brew_count
             ml_max[3] += potion.dark*desired_potion_brew_count
 
+    return get_bottle_plan_calculation(potion_brew_amount, ml_available, ml_max, unique_potions, potion_storage_left)
+
+def get_bottle_plan_calculation(potion_brew_amount : list[int], ml_available : list[int], ml_needed : list[int], unique_potions : list[list[int]], potion_storage_left : int) -> list[dict[str, any]]:
     if not potion_brew_amount:
         return []
-    min = potion_brew_amount[-1]
-    potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
-    brew_ratio_copy = potion_brew_ratio.copy()
-    ml_usable = [ ml_available[index] if ml_available[index] < ml_max[index] else ml_max[index] for index in range(len(ml_max))]
-    ml_used = ml_usable.copy()
-    unique_potion_counts = [0]*len(unique_potions)
+    plan = []
     potion_index = 0
     potion_count = len(unique_potions)
     potion_unavailable = [0]*potion_count
+    unique_potion_counts = [0]*potion_count
+    ml_types = ["red", "green", "blue", "dark"]
+    min = potion_brew_amount[-1]
+    potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
+    brew_ratio_copy = potion_brew_ratio.copy()
+    ml_usable = [ ml_available[index] if ml_available[index] < ml_needed[index] else ml_needed[index] for index in range(len(ml_needed))]
+    ml_used = ml_usable.copy()
     count = 0
     loop_count = 0
     while potion_storage_left > 0 and not all (potion_unavailable):
@@ -211,6 +215,7 @@ def get_bottle_plan():
             potion_index = (potion_index+1)%potion_count
             loop_count = loop_count + 1
             if loop_count > potion_count:
+                print("opps")
                 break
             continue
         loop_count = 0
@@ -235,7 +240,6 @@ def get_bottle_plan():
         potion_index = (potion_index+1)%len(unique_potions)
 
     print(f"Looped: {count} Times") 
-    plan = []
     for i in range(len(unique_potions)):
         if unique_potion_counts[i] == 0:
             continue
