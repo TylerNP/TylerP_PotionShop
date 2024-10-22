@@ -38,8 +38,6 @@ def get_capacity_plan():
     capacity unit costs 1000 gold.
     """
     usable_gold = 0
-    ml_total = 0
-    potion_count = 0
     with db.engine.begin() as connection:
         sql_to_execute = """
                             SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, 
@@ -49,16 +47,12 @@ def get_capacity_plan():
             
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
-            divide_third = 3
-            usable_gold = result.gold // divide_third
+            divide_two = 2
+            usable_gold = result.gold // divide_two
             ml_capacity = result.ml_capacity
             potion_capacity = result.potion_capacity
-            potion_count = result.num_potions
-            ml_total = result.num_red_ml + result.num_green_ml + result.num_blue_ml + result.num_dark_ml
 
     cost_per_capacity = 1000
-    ml_per_capacity = 10000
-    potion_per_capacity = 50
     potion_capacity_bought = 0
     ml_capacity_bought = 0
 
@@ -95,13 +89,34 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     cost_per_capacity = 1000
     total_cost = cost_per_capacity*(ml_capacity_increment+potion_capacity_increment)
     with db.engine.begin() as connection:
+        values = {
+                "gold_cost": total_cost, 
+                "ml_capacity_added":ml_capacity_increment, 
+                "potion_capacity_added": potion_capacity_increment
+            }
+        sql_to_execute = """
+                        INSERT INTO transactions (description, time_id)
+                        VALUES (
+                                'Bought ' || :ml_capacity_added ||
+                                ' ml _capacity ' || :potion_capacity_added ||
+                                ' potion_capacity for ' || :gold_cost,
+                                (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1)
+                                ) 
+                        RETURNING id
+                    """
+        values["transaction_id"] = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
+        sql_to_execute = """
+                            INSERT INTO gold_ledgers (gold, transaction_id)
+                            VALUES (:gold_cost, :transaction_id)
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
                             UPDATE global_inventory 
                             SET gold = gold-:gold_cost,
                             ml_capacity = ml_capacity + :ml_capacity_added,
                             potion_capacity = potion_capacity + :potion_capacity_added
                         """
-        connection.execute(sqlalchemy.text(sql_to_execute), [{"gold_cost": total_cost, "ml_capacity_added":ml_capacity_increment, "potion_capacity_added": potion_capacity_increment}])
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
 
     print(f"Used {total_cost} For {ml_capacity_increment} ml_capacity and {potion_capacity_increment} potion_capacity")
     return "OK"
