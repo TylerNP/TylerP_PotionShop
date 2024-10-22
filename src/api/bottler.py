@@ -143,24 +143,23 @@ def get_bottle_plan():
     potion_storage_left = 0
     with db.engine.begin() as connection: 
         # Combine With Potions Query As Subquery LATER
-        sql_to_execute = "SELECT num_potions, potion_capacity, num_red_ml, num_green_ml, num_blue_ml, num_dark_ml FROM global_inventory"
+        sql_to_execute = """
+                            SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, 
+                            potion_capacity*50/(SELECT COUNT(1) FROM potions WHERE brew = TRUE) AS threshold,
+                            potion_capacity*50-(SELECT SUM(quantity) FROM potions) AS remaining_storage 
+                            FROM global_inventory
+                        """
         results = connection.execute(sqlalchemy.text(sql_to_execute))
-        capacity = 0
-        potion_stored = 0
+        potion_threshold = 0
+        potion_storage_left = 0
         for result in results:
             ml_available[0] = result.num_red_ml
             ml_available[1] = result.num_green_ml
             ml_available[2] = result.num_blue_ml
             ml_available[3] = result.num_dark_ml
-            capacity = result.potion_capacity
-            potion_stored = result.num_potions
+            potion_threshold = result.threshold
+            potion_storage_left = result.remaining_storage
 
-        sql_to_execute = "SELECT COUNT(1) FROM potions WHERE brew = TRUE"
-        potions_available = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
-        potion_per_capacity = 50
-        potion_capacity = potion_per_capacity * capacity
-        potion_threshold = potion_capacity // potions_available
-        potion_storage_left = potion_capacity - potion_stored
         sql_to_execute = """
                             SELECT red, green, blue, dark, quantity 
                             FROM potions 

@@ -216,16 +216,15 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                         """
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
         sql_to_execute = """
-                            INSERT INTO customer_purchases (gold_cost, transaction_id, customer_id, time_id, cart_id) 
+                            INSERT INTO customer_purchases (gold_cost, transaction_id, customer_id, cart_id) 
                             VALUES (
                                 (SELECT SUM(potion_quantity*
                                     (SELECT potions.price FROM potions 
                                     WHERE potions.sku = cart_items.sku)) 
-                                FROM cart_items WHERE cart_id = :cart_id), :transaction_id, 
+                                FROM cart_items WHERE cart_id = :cart_id), 
+                                :transaction_id, 
                                 (SELECT customer_id FROM carts
                                 WHERE id = :cart_id LIMIT 1), 
-                                (SELECT time.id FROM time 
-                                ORDER BY time.id DESC LIMIT 1),
                                 :cart_id
                                 )
                         """
