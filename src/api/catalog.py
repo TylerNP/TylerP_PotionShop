@@ -17,18 +17,20 @@ def get_catalog():
         sql_to_execute = """
                             SELECT sku, quantity, price, red, green, blue, dark, name 
                             FROM potions 
+                            WHERE quantity > 0
                             ORDER BY quantity DESC 
                             LIMIT 6
                         """
         potions = connection.execute(sqlalchemy.text(sql_to_execute))
         for potion in potions:
-            if potion.quantity > 0:
-                potions_available.append( {
+            potions_available.append(
+                {
                     "sku": potion.sku,
                     "name": potion.name,
                     "quantity": potion.quantity,
-                    "price": int(potion.price),
+                    "price": potion.price,
                     "potion_type": [potion.red, potion.green, potion.blue, potion.dark]
-                } )
+                } 
+            )
     print(potions_available)
     return potions_available
