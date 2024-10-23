@@ -47,8 +47,9 @@ def get_capacity_plan():
             
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
-            divide_two = 2
-            usable_gold = result.gold // divide_two
+            thirds = 3
+            two = 2
+            usable_gold = (two * result.gold) // thirds
             ml_capacity = result.ml_capacity
             potion_capacity = result.potion_capacity
 

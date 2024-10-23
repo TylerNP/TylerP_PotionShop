@@ -94,17 +94,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
     #TO DO improve barrel planning logic
 
-    plan = []
+    usable_gold = 0
+    ml_capacity = 0
     num_types = 4
     ml_needed = [0]*num_types
     ml_available = [0]*num_types
-    ml_space = [0]*num_types
-    gold_threshold = 0
-    usable_gold = 0
-    remaining_ml_threshold = 0
-    ml_threshold = 0
-    overflow_count = 0
-    ml_capacity = 0
+    ml_stored = [0]*4
 
     with db.engine.begin() as connection: 
         #Check to determine if can purchase
@@ -114,7 +109,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                             FROM global_inventory
                         """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
-        ml_stored = [0]*4
         for result in query:
             ml_capacity = result.capacity
             usable_gold = result.gold
@@ -122,23 +116,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_stored[1] = result.num_green_ml
             ml_stored[2] = result.num_blue_ml
             ml_stored[3] = result.num_dark_ml
-
-        usable_gold = usable_gold-gold_threshold
-        ml_threshold = ml_capacity//num_types
-        total_ml = 0
-        over_threshold = False
-        for index in range(len(ml_needed)):
-            if ml_stored[index] > ml_threshold:
-                over_threshold = True
-                overflow_count = overflow_count + 1
-            ml_available[index] = ml_stored[index]
-            total_ml += ml_stored[index]
-        
-        if (total_ml>=ml_capacity):
-            return plan
-        
-        if over_threshold:
-            remaining_ml_threshold = (ml_capacity-total_ml)
         
         #ml Needed For Immediate Brewing
         sql_to_execute = """
@@ -159,8 +136,42 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_needed[2] += pots.blue*(pots.threshold-pots.quantity)
             ml_needed[3] += pots.dark*(pots.threshold-pots.quantity)
 
-    #Create Ratio Of ML to Purchase Using Min
+    return barrel_plan_calculation(wholesale_catalog, ml_needed, ml_available, ml_stored, usable_gold, ml_capacity)
+
+def barrel_plan_calculation(
+                                wholesale_catalog : list[Barrel], 
+                                ml_needed : list[int], 
+                                ml_available : list[int], 
+                                ml_stored : list[int],
+                                usable_gold : int,
+                                ml_capacity : int
+                            ) -> dict[str, any]:
+    plan = []
+    num_types = 4
+    ml_space = [0]*num_types
     ml_count = 0
+    overflow_count = 0
+    remaining_ml_threshold = 0
+    gold_threshold = 0
+    
+    usable_gold = usable_gold-gold_threshold
+    ml_threshold = ml_capacity//num_types
+    total_ml = 0
+    over_threshold = False
+    for index in range(len(ml_needed)):
+        if ml_stored[index] > ml_threshold:
+            over_threshold = True
+            overflow_count = overflow_count + 1
+        ml_available[index] = ml_stored[index]
+        total_ml += ml_stored[index]
+    
+    if (total_ml>=ml_capacity):
+        return plan
+    
+    if over_threshold:
+        remaining_ml_threshold = (ml_capacity-total_ml)
+    
+
     for value in ml_needed:
         if value != 0:
             ml_count = ml_count + 1

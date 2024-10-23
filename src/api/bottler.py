@@ -190,9 +190,15 @@ def get_bottle_plan():
             ml_max[2] += potion.blue*desired_potion_brew_count
             ml_max[3] += potion.dark*desired_potion_brew_count
 
-    return get_bottle_plan_calculation(potion_brew_amount, ml_available, ml_max, unique_potions, potion_storage_left)
+    return bottle_plan_calculation(potion_brew_amount, ml_available, ml_max, unique_potions, potion_storage_left)
 
-def get_bottle_plan_calculation(potion_brew_amount : list[int], ml_available : list[int], ml_needed : list[int], unique_potions : list[list[int]], potion_storage_left : int) -> list[dict[str, any]]:
+def bottle_plan_calculation(
+                                potion_brew_amount : list[int], 
+                                ml_available : list[int], 
+                                ml_needed : list[int], 
+                                unique_potions : list[list[int]], 
+                                potion_storage_left : int
+                            ) -> list[dict[str, any]]:
     if not potion_brew_amount:
         return []
     plan = []
