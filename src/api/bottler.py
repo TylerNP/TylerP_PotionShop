@@ -253,7 +253,7 @@ def get_bottle_plan_calculation(potion_brew_amount : list[int], ml_available : l
 
 def create_random_potion(increment : int, type : int, price : int) -> dict[str, any]:
     if (increment > 100):
-        return ValueErrorError
+        return ValueError
     random.seed(version=2)
     
     num_types = 4
