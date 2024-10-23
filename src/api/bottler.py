@@ -253,7 +253,7 @@ def get_bottle_plan_calculation(potion_brew_amount : list[int], ml_available : l
 
 def create_random_potion(increment : int, type : int, price : int) -> dict[str, any]:
     if (increment > 100):
-        return NotImplemented
+        return ValueErrorError
     random.seed(version=2)
     
     num_types = 4
@@ -302,7 +302,7 @@ def generate_name_sku(potion_type : list[int]) -> dict[str, str]:
 
 def vary_potion(potion : dict[str, any], step : int, degree : int) -> dict[str, any]:
     if degree > 3 or degree < 1:
-        return NotImplemented
+        return ValueError
     potion_type = potion["potion_type"]
     num_types = 4
     main = potion_type.index(max(potion_type))
