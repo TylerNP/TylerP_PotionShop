@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from enum import Enum
 from pydantic import BaseModel
 from src.api import auth
+import random
 
 import sqlalchemy
 from src import database as db
@@ -250,5 +251,85 @@ def get_bottle_plan_calculation(potion_brew_amount : list[int], ml_available : l
         print(f"{ml_types[index]} used {ml_used[index]-ml_usable[index]}")
     return plan
 
+def create_random_potion(increment : int, type : int, price : int) -> dict[str, any]:
+    if (increment > 100):
+        return NotImplemented
+    random.seed(version=2)
+    
+    num_types = 4
+    ml = [0]*num_types
+    total = 100
+    if type == 1: 
+        index = random.randrange(0,num_types)
+        for index in range(num_types-1):
+            ml[index] = random.randrange(0,total+1,increment)
+            total = total - ml[index]  
+            index = (index+1)%4
+        ml[index] = total
+    elif (type == 2):
+        if total%increment != 0:
+            ml[random.randrange(0,num_types)] = total%increment
+        for _ in range(total//increment):
+            ml[random.randrange(0,num_types)] += increment
+    else:
+        return NotImplemented
+    strings = generate_name_sku(ml)
+    return {
+                "sku":strings["sku"],
+                "name":strings["name"],
+                "price":price,
+                "potion_type":ml
+    }
+
+def generate_name_sku(potion_type : list[int]) -> dict[str, str]:
+    ml_types = ["red", "green", "blue", "dark"]
+    num_types = 4
+    sku = ""
+    name = ""
+    for index in range(num_types):
+        sku += ml_types[index] + str(potion_type[index])
+        if (index != num_types-1):
+            sku += '_'
+        if potion_type[index] != 0:
+            name += ml_types[index] + str(potion_type[index])
+            if (index == num_types-1):
+                break
+            name += '_'
+    return {
+                "sku":sku,
+                "name":name
+    }
+
+def vary_potion(potion : dict[str, any], step : int, degree : int) -> dict[str, any]:
+    if degree > 3 or degree < 1:
+        return NotImplemented
+    potion_type = potion["potion_type"]
+    num_types = 4
+    main = potion_type.index(max(potion_type))
+    change = step // degree
+    if step%degree != 0:
+        index = main
+        while index == main:
+            index = random.randrange(0, num_types)
+        potion_type[index] += step%degree
+    for _ in range(degree):
+        index = main
+        while index == main:
+            index = random.randrange(0, num_types)
+        potion_type[index] += change
+    potion_type[main] -= step
+    str = generate_name_sku(potion_type)
+    return {
+                "sku":str["sku"],
+                "name":str["name"],
+                "price":potion["price"],
+                "potion_type":potion_type
+    }
+
 if __name__ == "__main__":
-    print(get_bottle_plan())
+    new_potion = create_random_potion(7, 1, 25)
+    print(new_potion)
+    varied_potion = vary_potion(new_potion, 14, 3)
+    print(varied_potion)
+
+    #print(get_bottle_plan())
