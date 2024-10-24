@@ -301,3 +301,6 @@ def barrel_plan_calculation(
     print(plan)
     return plan
 
+if __name__ == "__main__":
+    print("Ran barrels.py")
+

@@ -23,7 +23,10 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
     Update database values for ml and potions
     """
     ml_used = [0]*4
-    ml_red, ml_green, ml_blue, ml_dark = [], [], [], []
+    ml_red = []
+    ml_green = []
+    ml_blue = []
+    ml_dark = []
     quantities = []
     for potion in potions_delivered:
         quantities.append(potion.quantity)
@@ -142,7 +145,6 @@ def get_bottle_plan():
     potion_brew_amount = []
     potion_storage_left = 0
     with db.engine.begin() as connection: 
-        # Combine With Potions Query As Subquery LATER
         sql_to_execute = """
                             SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, 
                             potion_capacity*50/(SELECT COUNT(1) FROM potions WHERE brew = TRUE) AS threshold,
@@ -199,6 +201,9 @@ def bottle_plan_calculation(
                                 unique_potions : list[list[int]], 
                                 potion_storage_left : int
                             ) -> list[dict[str, any]]:
+    """
+    Determines how much of each potion to brew
+    """
     if not potion_brew_amount:
         return []
     plan = []
@@ -257,11 +262,25 @@ def bottle_plan_calculation(
         print(f"{ml_types[index]} used {ml_used[index]-ml_usable[index]}")
     return plan
 
+def update_potion_brew_list():
+    """
+    Use Current Time To Determine Which Potion To Brew For Next Tick
+    """
+    """
+    Find And Set Potions That Are Popular For Next Tick/ 2 Ticks
+    Generate New Potions For Potions That Don't Meet A Specific Threshold Popularity
+    """
+    return None
+
 def create_random_potion(increment : int, type : int, price : int) -> dict[str, any]:
+    """
+    Generate a random potion using an increment to determine the difference between them
+    Type 1 Gives a uneven distribution roughly 50/25/12/6
+    Type 2 Gives a more uniform distribution
+    """
     if (increment > 100):
         return ValueError
     random.seed(version=2)
-    
     num_types = 4
     ml = [0]*num_types
     total = 100
@@ -288,6 +307,9 @@ def create_random_potion(increment : int, type : int, price : int) -> dict[str, 
     }
 
 def generate_name_sku(potion_type : list[int]) -> dict[str, str]:
+    """
+    Generate a simply name and sku with red, green, blue, and dark
+    """
     ml_types = ["red", "green", "blue", "dark"]
     num_types = 4
     sku = ""
@@ -307,6 +329,10 @@ def generate_name_sku(potion_type : list[int]) -> dict[str, str]:
     }
 
 def vary_potion(potion : dict[str, any], step : int, degree : int) -> dict[str, any]:
+    """
+    Generate a variant of the given potion adjusting the "main" color with 
+    changes determined by step and degree
+    """
     if degree > 3 or degree < 1:
         return ValueError
     potion_type = potion["potion_type"]
