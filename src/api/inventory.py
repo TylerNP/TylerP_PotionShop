@@ -101,7 +101,7 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
                                 'Bought ' || :ml_capacity_added ||
                                 ' ml _capacity ' || :potion_capacity_added ||
                                 ' potion_capacity for ' || :gold_cost,
-                                (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1)
+                                (SELECT MAX(time.id) FROM time LIMIT 1)
                                 ) 
                         RETURNING id
                     """

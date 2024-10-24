@@ -105,8 +105,8 @@ def post_visits(visit_id: int, customers: list[Customer]):
                     }
                 ]
         sql_to_execute = """
-                            INSERT INTO customer_visits (visit_id, time_id, customer_id) 
-                            SELECT :visit_id, (SELECT time.id FROM time ORDER BY id DESC LIMIT 1), customers.id 
+                            INSERT INTO customer_visits (visit_id, customer_id, time_id) 
+                            SELECT :visit_id, customers.id, (SELECT MAX(time.id) FROM time LIMIT 1) 
                             FROM customers, UNNEST(:level_list, :name_list, :class_list) AS new (level_item, name_item, class_item)
                             WHERE new.level_item = customers.level
                             AND new.name_item = customers.customer_name
@@ -211,7 +211,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                             ' AMOUNT BOUGHT: '|| (SELECT potion_quantity FROM cart_items WHERE cart_id = :cart_id) ||
                             ' TYPE: ' || (SELECT sku FROM cart_items WHERE cart_id= :cart_id) ||
                             ' COST: '|| (SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id), 
-                            (SELECT id FROM time ORDER BY id DESC LIMIT 1)) 
+                            (SELECT MAX(time.id) FROM time LIMIT 1)) 
                             RETURNING id
                         """
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()

@@ -56,7 +56,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                                     :blue || ' blue ml ' || 
                                     :dark || ' dark ml for ' || 
                                     :gold_cost, 
-                                    (SELECT time.id FROM time ORDER BY time.id DESC LIMIT 1)
+                                    (SELECT MAX(time.id) FROM time LIMIT 1)
                                     ) 
                             RETURNING id
                         """
