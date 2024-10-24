@@ -262,15 +262,64 @@ def bottle_plan_calculation(
         print(f"{ml_types[index]} used {ml_used[index]-ml_usable[index]}")
     return plan
 
-def update_potion_brew_list():
+def update_potion_brew_list() -> object:
     """
     Use Current Time To Determine Which Potion To Brew For Next Tick
     """
     """
     Find And Set Potions That Are Popular For Next Tick/ 2 Ticks
     Generate New Potions For Potions That Don't Meet A Specific Threshold Popularity
+
+    SET TOP 4 POTIONS OF A DAY TO BREW
+    ==================================
+    WITH sold (sku, day, amt) AS (
+        SELECT potions.sku, time.day, 
+            SUM(-1*potion_ledgers.quantity) AS sold_amt 
+        FROM potions, potion_ledgers, transactions, time 
+        WHERE potions.sku = potion_ledgers.sku 
+        AND potion_ledgers.transaction_id = transactions.id 
+        AND transactions.time_id = time.id 
+        AND potion_ledgers.quantity < 0 
+        GROUP BY potions.sku, time.day
+    )
+
+    UPDATE potions SET brew = new.brew 
+    FROM(
+    SELECT sold.sku, 
+    ((sold.amt/SUM(sold.amt) OVER (PARTITION BY sold.day))::double precision > (
+        SELECT (sold.amt/SUM(sold.amt) OVER (PARTITION BY sold.day))::double precision AS cutoff 
+        FROM sold 
+        WHERE sold.day = (
+        SELECT time.day 
+        FROM time 
+        ORDER BY time.id 
+        DESC LIMIT 1)
+        ORDER BY sold.amt DESC 
+        LIMIT 1 
+        OFFSET 4
+    )) AS brew 
+    FROM sold 
+    WHERE sold.day = :day
+    LIMIT 4
+    ) AS new 
+    WHERE potions.sku = new.sku;
+
+    GRAB LEAST 2 PERFORMANT (OUt of 6) 
+    AND Generate New Potions OR Variants
     """
     return None
+
+def next_day(day : str) -> str:
+    days = {
+                "Arcanaday":"Hearthday",
+                "Blesseday":"Soulday",
+                "Bloomday":"Arcanaday",
+                "Crownday":"Blesseday",
+                "Edgeday":"Bloomday",
+                "Hearthday":"Crownday",
+                "Soulday":"Edgeday"
+            }
+    return days[day]
 
 def create_random_potion(increment : int, type : int, price : int) -> dict[str, any]:
     """
@@ -310,7 +359,7 @@ def generate_name_sku(potion_type : list[int]) -> dict[str, str]:
     """
     Generate a simply name and sku with red, green, blue, and dark
     """
-    ml_types = ["red", "green", "blue", "dark"]
+    ml_types = ["r", "g", "b", "d"]
     num_types = 4
     sku = ""
     name = ""
@@ -336,32 +385,38 @@ def vary_potion(potion : dict[str, any], step : int, degree : int) -> dict[str, 
     if degree > 3 or degree < 1:
         return ValueError
     potion_type = potion["potion_type"]
-    num_types = 4
     main = potion_type.index(max(potion_type))
-    change = step // degree
-    if step%degree != 0:
-        index = main
-        while index == main:
-            index = random.randrange(0, num_types)
-        potion_type[index] += step%degree
-    for _ in range(degree):
-        index = main
-        while index == main:
-            index = random.randrange(0, num_types)
-        potion_type[index] += change
-    potion_type[main] -= step
-    str = generate_name_sku(potion_type)
-    return {
-                "sku":str["sku"],
-                "name":str["name"],
-                "price":potion["price"],
-                "potion_type":potion_type
-    }
+    max_ml = 100
+    if potion_type[main] >= step:
+        num_types = 4
+        change = step // degree
+        if step%degree != 0:
+            index = main
+            while index == main:
+                index = random.randrange(0, num_types)
+            potion_type[index] += step%degree
+        for _ in range(degree):
+            index = main
+            while index == main:
+                index = random.randrange(0, num_types)
+            potion_type[index] += change
+        potion_type[main] -= step
+        strings = generate_name_sku(potion_type)
+        return {
+                    "sku":strings["sku"],
+                    "name":strings["name"],
+                    "price":potion["price"],
+                    "potion_type":potion_type
+        }
+    elif step//degree < max_ml:
+        return create_random_potion(step//degree, 2, potion["price"])
+    else:
+        return ValueError
 
 if __name__ == "__main__":
     new_potion = create_random_potion(7, 1, 25)
     print(new_potion)
-    varied_potion = vary_potion(new_potion, 14, 3)
+    varied_potion = vary_potion(new_potion, 34, 3)
     print(varied_potion)
 
     #print(get_bottle_plan())
