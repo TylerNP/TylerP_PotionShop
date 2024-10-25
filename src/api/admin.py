@@ -29,29 +29,9 @@ def reset():
                             ml_capacity = 1,
                             potion_capacity = 1
                         """
-        connection.execute(sqlalchemy.text(sql_to_execute))
-        sql_to_execute = " DELETE FROM carts"
+        connection.execute(sqlalchemy.text(sql_to_execute)) 
+        sql_to_execute = "TRUNCATE carts"
         connection.execute(sqlalchemy.text(sql_to_execute))
         sql_to_execute = "UPDATE potions SET quantity = 0"
         connection.execute(sqlalchemy.text(sql_to_execute))
-    return "OK"
-
-@router.post("/update/{potion_sku}/brewing{brew_setting}")
-def post_update_potion_brew(potion_sku : str, brew_setting : bool):
-    """
-    Update database for what potions to brew
-    """
-    with db.engine.begin() as connection:
-        sql_to_execute = "UPDATE potions SET brew = %s WHERE sku = '%s'"
-        connection.execute(sqlalchemy.text(sql_to_execute % (brew_setting, potion_sku)))
-    return "OK"
-
-@router.post("/update/{potion_sku}/price{price}")
-def post_update_potion_price(potion_sku : str, price : int):
-    """
-    Update database for potion pricing
-    """
-    with db.engine.begin() as connection:
-        sql_to_execute = "UPDATE potions SET price = %d WHERE sku = '%s'"
-        connection.execute(sqlalchemy.text(sql_to_execute % (price, potion_sku)))
     return "OK"
