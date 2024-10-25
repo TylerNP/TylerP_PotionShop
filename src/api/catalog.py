@@ -47,16 +47,18 @@ def get_catalog():
                             AND quantity > 0
                         )
 
-                        (SELECT potions.sku, potions.quantity, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name
-                        FROM potions
-                        WHERE NOT EXISTS (SELECT popular.sku FROM popular WHERE popular.sku = potions.sku)
-                        AND quantity > 0
-                        ORDER BY quantity 
-                        LIMIT 6-(SELECT COUNT(1) FROM popular))
-                        UNION ALL
-                        (SELECT potions.sku, potions.quantity, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name 
-                        FROM potions, popular
-                        WHERE potions.sku = popular.sku)
+                        (
+                            SELECT potions.sku, potions.quantity, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name
+                            FROM potions
+                            WHERE NOT EXISTS (SELECT popular.sku FROM popular WHERE popular.sku = potions.sku)
+                            AND quantity > 0
+                            ORDER BY quantity 
+                            LIMIT 6-(SELECT COUNT(1) FROM popular)
+                        ) UNION ALL (
+                            SELECT potions.sku, potions.quantity, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name 
+                            FROM potions, popular
+                            WHERE potions.sku = popular.sku
+                        )
                         """
         
         potions = connection.execute(sqlalchemy.text(sql_to_execute))

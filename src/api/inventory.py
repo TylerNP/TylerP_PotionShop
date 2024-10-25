@@ -21,12 +21,16 @@ def get_inventory():
     ml_in_barrels = 0
     number_of_potions = 0
     with db.engine.begin() as connection:
-        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar()
-        ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar()
-        ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
-        ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar()
-        ml_in_barrels += connection.execute(sqlalchemy.text("SELECT num_dark_ml FROM global_inventory")).scalar()
-        number_of_potions = connection.execute(sqlalchemy.text("SELECT num_potions FROM global_inventory")).scalar()
+        sql_to_execute = """
+                            SELECT (num_red_ml+num_green_ml+num_blue_ml+num_dark_ml) AS ml_total, 
+                            gold, ml_capacity, potion_capacity, (SELECT SUM(potions.quantity) FROM potions) AS num_potions
+                            FROM global_inventory
+                        """
+        results = connection.execute(sqlalchemy.text(sql_to_execute))
+        for result in results:
+            gold = result.gold
+            ml_in_barrels = result.ml_total
+            number_of_potions = result.num_potions
     
     return {"number_of_potions": number_of_potions, "ml_in_barrels": ml_in_barrels, "gold": gold}
 
@@ -40,8 +44,7 @@ def get_capacity_plan():
     usable_gold = 0
     with db.engine.begin() as connection:
         sql_to_execute = """
-                            SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, 
-                            gold, ml_capacity, potion_capacity, num_potions 
+                            SELECT gold, ml_capacity, potion_capacity,
                             FROM global_inventory
                         """
             
@@ -98,11 +101,11 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
         sql_to_execute = """
                         INSERT INTO transactions (description, time_id)
                         VALUES (
-                                'Bought ' || :ml_capacity_added ||
-                                ' ml _capacity ' || :potion_capacity_added ||
-                                ' potion_capacity for ' || :gold_cost,
-                                (SELECT MAX(time.id) FROM time LIMIT 1)
-                                ) 
+                            'Bought ' || :ml_capacity_added ||
+                            ' ml _capacity ' || :potion_capacity_added ||
+                            ' potion_capacity for ' || :gold_cost,
+                            (SELECT MAX(time.id) FROM time LIMIT 1)
+                        ) 
                         RETURNING id
                     """
         values["transaction_id"] = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
