@@ -44,15 +44,16 @@ def get_capacity_plan():
     usable_gold = 0
     with db.engine.begin() as connection:
         sql_to_execute = """
-                            SELECT gold, ml_capacity, potion_capacity,
+                            SELECT 
+                                (SELECT numerator FROM parameters LIMIT 1) * gold / 
+                                    (SELECT denominator FROM parameters LIMIT 1) AS usable_gold, 
+                                ml_capacity, 
+                                potion_capacity 
                             FROM global_inventory
                         """
-            
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
-            thirds = 3
-            two = 2
-            usable_gold = (two * result.gold) // thirds
+            usable_gold = result.usable_gold
             ml_capacity = result.ml_capacity
             potion_capacity = result.potion_capacity
 

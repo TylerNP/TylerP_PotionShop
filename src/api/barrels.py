@@ -104,14 +104,19 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection: 
         #Check to determine if can purchase
         sql_to_execute = """
-                            SELECT (10000*ml_capacity) AS capacity, gold, num_red_ml, 
-                                num_green_ml, num_blue_ml, num_dark_ml 
+                            SELECT 
+                                (10000*ml_capacity) AS capacity, 
+                                gold-(SELECT gold_threshold FROM parameters) AS usable_gold, 
+                                num_red_ml, 
+                                num_green_ml, 
+                                num_blue_ml, 
+                                num_dark_ml 
                             FROM global_inventory
                         """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             ml_capacity = result.capacity
-            usable_gold = result.gold
+            usable_gold = result.usable_gold
             ml_stored[0] = result.num_red_ml
             ml_stored[1] = result.num_green_ml
             ml_stored[2] = result.num_blue_ml
@@ -152,9 +157,7 @@ def barrel_plan_calculation(
     ml_count = 0
     overflow_count = 0
     remaining_ml_threshold = 0
-    gold_threshold = 0
-    
-    usable_gold = usable_gold-gold_threshold
+
     ml_threshold = ml_capacity//num_types
     total_ml = 0
     over_threshold = False
