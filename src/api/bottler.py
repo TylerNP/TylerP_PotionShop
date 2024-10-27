@@ -272,41 +272,70 @@ def update_potion_brew_list() -> object:
 
     SET TOP 4 POTIONS OF A DAY TO BREW
     ==================================
-    WITH sold (sku, day, amt) AS (
-        SELECT potions.sku, time.day, 
-            SUM(-1*potion_ledgers.quantity) AS sold_amt 
-        FROM potions, potion_ledgers, transactions, time 
-        WHERE potions.sku = potion_ledgers.sku 
-        AND potion_ledgers.transaction_id = transactions.id 
-        AND transactions.time_id = time.id 
-        AND potion_ledgers.quantity < 0 
-        GROUP BY potions.sku, time.day
-    )
-
-    UPDATE potions SET brew = new.brew 
-    FROM(
-    SELECT sold.sku, 
-    ((sold.amt/SUM(sold.amt) OVER (PARTITION BY sold.day))::double precision > (
-        SELECT (sold.amt/SUM(sold.amt) OVER (PARTITION BY sold.day))::double precision AS cutoff 
-        FROM sold 
-        WHERE sold.day = (
-        SELECT time.day 
-        FROM time 
-        ORDER BY time.id 
-        DESC LIMIT 1)
-        ORDER BY sold.amt DESC 
-        LIMIT 1 
-        OFFSET 4
-    )) AS brew 
-    FROM sold 
-    WHERE sold.day = :day
-    LIMIT 4
-    ) AS new 
-    WHERE potions.sku = new.sku;
+    
 
     GRAB LEAST 2 PERFORMANT (OUt of 6) 
     AND Generate New Potions OR Variants
     """
+    sql_to_execute = """
+                        UPDATE potions SET brew = False
+                    """
+    sql_to_execute = """
+                        WITH sold (sku, amt) AS (
+                            SELECT 
+                                potions.sku, 
+                                SUM(-1*potion_ledgers.quantity) AS sold_amt 
+                            FROM 
+                                potions, 
+                                potion_ledgers, 
+                                transactions, (
+                                    SELECT 
+                                        time.id
+                                    FROM 
+                                        time
+                                    WHERE 
+                                        time.day = :next_day
+                                        AND time.id BETWEEN (
+                                            SELECT MAX(time.id)-12 FROM time WHERE time.day = :next_day
+                                        ) AND (
+                                            SELECT MAX(time.id) FROM time WHERE time.day = :next_day
+                                        )
+                                    ORDER BY 
+                                        time.id DESC
+                                    LIMIT 12
+                                    OFFSET 1
+                                ) AS time_filtered
+                            WHERE 
+                                potions.sku = potion_ledgers.sku 
+                                AND potion_ledgers.transaction_id = transactions.id 
+                                AND transactions.time_id = time_filtered.id
+                                AND potion_ledgers.quantity < 0 
+                            GROUP BY 
+                                potions.sku
+                        )
+
+                        UPDATE potions 
+                        SET brew = new.brew
+                        FROM (
+                            SELECT 
+                                sold.sku, 
+                                (sold.amt > (
+                                    SELECT 
+                                        COALESCE(MAX(cutoff.amt), 0)  
+                                    FROM (
+                                        SELECT sold.amt AS amt 
+                                        FROM sold 
+                                        ORDER BY sold.amt DESC 
+                                        LIMIT 1 
+                                        OFFSET 4
+                                    ) as cutoff
+                            )) AS brew 
+                            FROM sold 
+                            LIMIT 4
+                        ) AS new
+                        WHERE potions.sku = new.sku;
+                    """
+    sql_to_execute = "INSERT INTO potions ETC"
     return None
 
 def next_day(day : str) -> str:

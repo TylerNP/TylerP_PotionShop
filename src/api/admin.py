@@ -30,8 +30,8 @@ def reset():
                             potion_capacity = 1
                         """
         connection.execute(sqlalchemy.text(sql_to_execute)) 
-        sql_to_execute = "TRUNCATE carts"
-        connection.execute(sqlalchemy.text(sql_to_execute))
+        #sql_to_execute = "TRUNCATE carts"
+        #connection.execute(sqlalchemy.text(sql_to_execute))
         sql_to_execute = "UPDATE potions SET quantity = 0"
         connection.execute(sqlalchemy.text(sql_to_execute))
     return "OK"
