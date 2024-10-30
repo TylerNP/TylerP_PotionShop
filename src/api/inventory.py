@@ -42,32 +42,37 @@ def get_capacity_plan():
     capacity unit costs 1000 gold.
     """
     usable_gold = 0
+    capacity_numerator = 0
+    capacity_denominator = 0
     with db.engine.begin() as connection:
         sql_to_execute = """
                             SELECT 
                                 (SELECT numerator FROM parameters LIMIT 1) * gold / 
                                     (SELECT denominator FROM parameters LIMIT 1) AS usable_gold, 
-                                ml_capacity, 
-                                potion_capacity 
+                                ml_capacity
                             FROM global_inventory
                         """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             usable_gold = result.usable_gold
             ml_capacity = result.ml_capacity
-            potion_capacity = result.potion_capacity
+        sql_to_execute = """
+                            SELECT capacity_numerator, capacity_denominator FROM parameters
+                        """
+        query = connection.execute(sqlalchemy.text(sql_to_execute))
+        for result in query:
+            capacity_denominator = result.capacity_denominator
+            capacity_numerator = result.capacity_numerator
 
     cost_per_capacity = 1000
     potion_capacity_bought = 0
     ml_capacity_bought = 0
 
     # Only buy capacity to double storage 
-    double = 2
-    ml_capacity_desired = double * ml_capacity 
-    potion_capacity_desired = ml_capacity_desired
-    ml_capacity_bought = ml_capacity_desired - ml_capacity
-    potion_capacity_bought = potion_capacity_desired - potion_capacity
-    if usable_gold < cost_per_capacity*(ml_capacity_bought+potion_capacity_bought):
+    both_capacity = 2
+    capacity_desired_min = (ml_capacity * capacity_numerator // capacity_denominator)-ml_capacity 
+    potion_capacity_buying = usable_gold//(both_capacity*cost_per_capacity)
+    if potion_capacity_buying < capacity_desired_min:
         ml_capacity_bought = 0
         potion_capacity_bought = 0
  
