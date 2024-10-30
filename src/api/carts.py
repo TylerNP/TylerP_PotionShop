@@ -209,7 +209,16 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                         """
         exists = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
         if exists == None:
-            return "Already Checked Out"
+            sql_to_execute = """
+                                SELECT gold_cost, quantity FROM customer_purchases WHERE cart_id = :cart_id
+                            """
+            results = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
+            gold_total = 0
+            total_potions = 0
+            for result in results:
+                gold_total = result.gold_cost
+                total_potions = result.quantity
+            return {"total_potions_bought": total_potions, "total_gold_paid": gold_total}
         sql_to_execute = """
                             SELECT sku, SUM(potion_quantity) AS total_quantity FROM cart_items WHERE cart_id = :cart_id GROUP BY sku
                         """
@@ -228,12 +237,13 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                         """
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id, "text":text}).scalar()
         sql_to_execute = """
-                            INSERT INTO customer_purchases (gold_cost, transaction_id, customer_id, cart_id) 
+                            INSERT INTO customer_purchases (gold_cost, quantity, transaction_id, customer_id, cart_id) 
                             VALUES (
                                 (SELECT SUM(potion_quantity*
                                     (SELECT potions.price FROM potions 
                                     WHERE potions.sku = cart_items.sku)) 
                                 FROM cart_items WHERE cart_id = :cart_id), 
+                                (SELECT SUM(potion_quantity) FROM cart_items WHERE cart_id = :cart_id),
                                 :transaction_id, 
                                 (SELECT customer_id FROM carts
                                 WHERE id = :cart_id LIMIT 1), 
