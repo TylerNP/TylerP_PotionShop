@@ -315,12 +315,12 @@ def simplified_plan(
             not_buying_count += 1
             overflow_ml += ml_stored[index]
 
-    ml_space = [0]*num_types
-    if not_buying_count  > 0:
-        #Trys to Refill the low values as fast as possible
-        if num_types == not_buying_count:
-            return plan
+    if num_types == not_buying_count:
+        return plan
+    elif not_buying_count  > 0:
         ml_threshold = (ml_capacity-overflow_ml) // (num_types-not_buying_count)
+
+    ml_space = [0]*num_types
     for index in range(num_types):
         ml_space_remain = ml_threshold-ml_stored[index]
         if ml_space_remain > 0:

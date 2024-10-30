@@ -1,7 +1,6 @@
-from src.api import barrels
+from src.api import barrels, bottler
 from src.api.barrels import Barrel
 import unittest
-
 
 """
 Test Barrel Plan Logic
@@ -94,7 +93,10 @@ class TestBarrelFunctions(unittest.TestCase):
         small_gold = 500
         ml_capacity = 10000
         self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
-    
+
+class TestBottlerFunctions(unittest.TestCase):
+    def test_plan_1(self):
+        self.assertEqual()
 
 if __name__ == '__main__':
     unittest.main()

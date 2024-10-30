@@ -277,9 +277,21 @@ def update_potion_brew_list() -> object:
     GRAB LEAST 2 PERFORMANT (OUt of 6) 
     AND Generate New Potions OR Variants
     """
+    #Get The Next Day For Brewing
+    sql_to_execute = """
+                        SELECT next_day.day 
+                        FROM next_day 
+                        WHERE next_day.id = (
+                            SELECT next_day.next_day_id 
+                            FROM next_day 
+                            WHERE next_day.day = :day
+                        )
+                    """
+    #Set All Potions Brewing to Off
     sql_to_execute = """
                         UPDATE potions SET brew = False
                     """
+    # Get Top Performing Potions For A Specific Day
     sql_to_execute = """
                         WITH sold (sku, amt) AS (
                             SELECT 
@@ -335,20 +347,10 @@ def update_potion_brew_list() -> object:
                         ) AS new
                         WHERE potions.sku = new.sku;
                     """
+    #Only create new potions types after some time,
+    #set old new potions cost to 1 if cant sell
     sql_to_execute = "INSERT INTO potions ETC"
     return None
-
-def next_day(day : str) -> str:
-    days = {
-                "Arcanaday":"Hearthday",
-                "Blesseday":"Soulday",
-                "Bloomday":"Arcanaday",
-                "Crownday":"Blesseday",
-                "Edgeday":"Bloomday",
-                "Hearthday":"Crownday",
-                "Soulday":"Edgeday"
-            }
-    return days[day]
 
 def create_random_potion(increment : int, type : int, price : int) -> dict[str, any]:
     """
