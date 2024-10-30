@@ -205,6 +205,12 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     gold_total = 0
     with db.engine.begin() as connection: 
         sql_to_execute = """
+                            SELECT carts.id FROM carts WHERE carts.id = :cart_id
+                        """
+        exists = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
+        if exists == None:
+            return "Already Checked Out"
+        sql_to_execute = """
                             SELECT sku, SUM(potion_quantity) AS total_quantity FROM cart_items WHERE cart_id = :cart_id GROUP BY sku
                         """
         potions = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
@@ -279,6 +285,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                             FROM cart_items WHERE cart_id = :cart_id
                         """
         results = connection.execute(sqlalchemy.text(sql_to_execute), values)
+        connection.execute(sqlalchemy.text("DELETE FROM carts where carts.id = :cart_id"), {"cart_id":cart_id})
         gold_total = 0
         total_potions = 0
         for result in results:
