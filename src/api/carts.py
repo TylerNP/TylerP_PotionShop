@@ -205,16 +205,22 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     gold_total = 0
     with db.engine.begin() as connection: 
         sql_to_execute = """
+                            SELECT sku, SUM(potion_quantity) AS total_quantity FROM cart_items WHERE cart_id = :cart_id GROUP BY sku
+                        """
+        potions = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id})
+        text = ""
+        for potion in potions:
+            text += f"Bought {potion.total_quantity} of {potion.sku}"
+        sql_to_execute = """
                             INSERT INTO transactions (description, time_id) 
                             VALUES ('CUSTOMER: ' || 
-                            (SELECT customer_id FROM carts WHERE id = :cart_id LIMIT 1) ||
-                            ' AMOUNT BOUGHT: '|| (SELECT potion_quantity FROM cart_items WHERE cart_id = :cart_id) ||
-                            ' TYPE: ' || (SELECT sku FROM cart_items WHERE cart_id= :cart_id) ||
+                            (SELECT customer_id FROM carts WHERE id = :cart_id LIMIT 1) || 
+                            :text ||
                             ' COST: '|| (SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id), 
                             (SELECT MAX(time.id) FROM time LIMIT 1)) 
                             RETURNING id
                         """
-        transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id}).scalar()
+        transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), {"cart_id":cart_id, "text":text}).scalar()
         sql_to_execute = """
                             INSERT INTO customer_purchases (gold_cost, transaction_id, customer_id, cart_id) 
                             VALUES (
