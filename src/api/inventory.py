@@ -65,21 +65,20 @@ def get_capacity_plan():
             capacity_numerator = result.capacity_numerator
 
     cost_per_capacity = 1000
-    potion_capacity_bought = 0
-    ml_capacity_bought = 0
 
     # Only buy capacity to double storage 
     both_capacity = 2
     capacity_desired_min = (ml_capacity * capacity_numerator // capacity_denominator)-ml_capacity 
-    potion_capacity_buying = usable_gold//(both_capacity*cost_per_capacity)
-    if potion_capacity_buying < capacity_desired_min:
-        ml_capacity_bought = 0
-        potion_capacity_bought = 0
+    capacity_buying = usable_gold//(both_capacity*cost_per_capacity)
+    print(capacity_buying)
+    print(capacity_desired_min)
+    if capacity_buying < capacity_desired_min:
+        capacity_buying = 0
  
-    print(f"Bought {potion_capacity_bought} potion_capacity and {ml_capacity_bought} ml_capacity")
+    print(f"Bought {capacity_buying} potion_capacity and {capacity_buying} ml_capacity")
     return {
-        "potion_capacity": potion_capacity_bought,
-        "ml_capacity": ml_capacity_bought
+        "potion_capacity": capacity_buying,
+        "ml_capacity": capacity_buying
         }
 
 class CapacityPurchase(BaseModel):
