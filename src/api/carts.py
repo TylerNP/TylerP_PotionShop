@@ -230,7 +230,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                             INSERT INTO transactions (description, time_id) 
                             VALUES ('CUSTOMER: ' || 
                             (SELECT customer_id FROM carts WHERE id = :cart_id LIMIT 1) || 
-                            :text ||
+                            ' ' || :text ||
                             ' COST: '|| (SELECT SUM(potion_quantity*(SELECT potions.price FROM potions WHERE potions.sku = cart_items.sku)) FROM cart_items WHERE cart_id = :cart_id), 
                             (SELECT MAX(time.id) FROM time LIMIT 1)) 
                             RETURNING id

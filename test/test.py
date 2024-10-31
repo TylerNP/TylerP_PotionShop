@@ -94,9 +94,41 @@ class TestBarrelFunctions(unittest.TestCase):
         ml_capacity = 10000
         self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
 
-class TestBottlerFunctions(unittest.TestCase):
-    def test_plan_1(self):
-        self.assertEqual()
+    def test_plan_simplified_6(self):
+        expected = [
+                        {'sku': 'SMALL_RED_BARREL', 'quantity': 1}, 
+                        {'sku': 'MEDIUM_GREEN_BARREL', 'quantity': 1}, 
+                        {'sku': 'MEDIUM_BLUE_BARREL', 'quantity': 1}, 
+                        {'sku': 'MINI_RED_BARREL', 'quantity': 1},
+                        {'sku': 'MINI_GREEN_BARREL', 'quantity': 1},
+                        {'sku': 'MINI_BLUE_BARREL', 'quantity': 1}
+                    ]
+        ml_needed = [0,0,0,0]
+        ml_stored = [2500,500,500,0]
+        usable_gold = 10500
+        small_gold = 500
+        ml_capacity = 10000
+        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
 
+    def test_plan_simplified_7(self):
+        expected = []
+        ml_needed = [2500,2500,2500,2500]
+        ml_stored = [2500,2500,2500,2500]
+        usable_gold = 10500
+        small_gold = 500
+        ml_capacity = 10000
+        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+
+    def test_plan_simplified_8(self):
+        expected = []
+        ml_needed = [2500,2500,2500,2500]
+        ml_stored = [500,500,500,500]
+        usable_gold = 50
+        small_gold = 500
+        ml_capacity = 10000
+        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+class TestBottlerFunctions(unittest.TestCase):
+    def none():
+        print("NONE")
 if __name__ == '__main__':
     unittest.main()
