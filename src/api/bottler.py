@@ -84,7 +84,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         values["text"] = concat_text
         sql_to_execute = """
                             INSERT INTO transactions (description, time_id, order_id)
-                            VALUES (:text, (SELECT MAX(time.id) FROM time LIMIT 1))
+                            VALUES (:text, (SELECT MAX(time.id) FROM time LIMIT 1), :order_id)
                             RETURNING id
                         """
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
