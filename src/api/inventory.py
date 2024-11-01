@@ -48,19 +48,13 @@ def get_capacity_plan():
     denominator = 0
     cap = 0
     with db.engine.begin() as connection:
-        sql_to_execute = """
-                            SELECT 
-                                gold, 
-                                ml_capacity
-                            FROM global_inventory
-                        """
+        sql_to_execute = "SELECT gold, ml_capacity FROM global_inventory"
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             usable_gold = result.gold
             capacity = result.ml_capacity
-        sql_to_execute = """
-                            SELECT capacity_numerator, capacity_denominator, numerator, denominator, capacity_cap FROM parameters
-                        """
+
+        sql_to_execute = "SELECT capacity_numerator, capacity_denominator, numerator, denominator, capacity_cap FROM parameters"
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             capacity_denominator = result.capacity_denominator
@@ -70,8 +64,7 @@ def get_capacity_plan():
             cap = result.capacity_cap
 
     cost_per_capacity = 1000
-    # Only buy capacity to double storage 
-    both_capacity = 2
+    both_capacity = 2 # Capacity is bought for both potions and ml at the same time
     capacity_desired = (capacity * capacity_numerator // capacity_denominator)
     capacity_desired_min = capacity_desired-capacity 
     capacity_buying = (numerator*usable_gold)//(both_capacity*cost_per_capacity*denominator)
@@ -105,15 +98,17 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
         values = {
                 "gold_cost": total_cost, 
                 "ml_capacity_added":ml_capacity_increment, 
-                "potion_capacity_added": potion_capacity_increment
+                "potion_capacity_added": potion_capacity_increment,
+                "order_id":order_id
             }
         sql_to_execute = """
-                        INSERT INTO transactions (description, time_id)
+                        INSERT INTO transactions (description, time_id, order_id)
                         VALUES (
                             'Bought ' || :ml_capacity_added ||
                             ' ml _capacity ' || :potion_capacity_added ||
                             ' potion_capacity for ' || :gold_cost,
-                            (SELECT MAX(time.id) FROM time LIMIT 1)
+                            (SELECT MAX(time.id) FROM time LIMIT 1),
+                            :order_id
                         ) 
                         RETURNING id
                     """

@@ -83,15 +83,15 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
             concat_text = concat_text + text.details
         values["text"] = concat_text
         sql_to_execute = """
-                            INSERT INTO transactions (description, time_id)
+                            INSERT INTO transactions (description, time_id, order_id)
                             VALUES (:text, (SELECT MAX(time.id) FROM time LIMIT 1))
                             RETURNING id
                         """
         transaction_id = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
         values["transaction_id"] = transaction_id
         sql_to_execute = """
-                            INSERT INTO potion_ledgers (sku, quantity, order_id, transaction_id)
-                            SELECT p.sku, q.pot_quantity, :order_id, :transaction_id 
+                            INSERT INTO potion_ledgers (sku, quantity, transaction_id)
+                            SELECT p.sku, q.pot_quantity, :transaction_id 
                             FROM potions AS p, 
                                 (SELECT UNNEST(:ml_red) AS pot_red, 
                                 UNNEST(:ml_green) AS pot_green, 
@@ -117,13 +117,12 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                     "green":ml_used[1], 
                     "blue":ml_used[2], 
                     "dark":ml_used[3],
-                    "order_id":order_id,
                     "transaction_id":transaction_id
                 }
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, order_id, transaction_id)
-                            VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :order_id, :transaction_id)
+                            INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, transaction_id)
+                            VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :transaction_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
