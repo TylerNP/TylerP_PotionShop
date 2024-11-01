@@ -44,37 +44,41 @@ def get_capacity_plan():
     usable_gold = 0
     capacity_numerator = 0
     capacity_denominator = 0
+    numerator = 0
+    denominator = 0
+    cap = 0
     with db.engine.begin() as connection:
         sql_to_execute = """
                             SELECT 
-                                (SELECT numerator FROM parameters LIMIT 1) * gold / 
-                                    (SELECT denominator FROM parameters LIMIT 1) AS usable_gold, 
+                                gold, 
                                 ml_capacity
                             FROM global_inventory
                         """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
-            usable_gold = result.usable_gold
-            ml_capacity = result.ml_capacity
+            usable_gold = result.gold
+            capacity = result.ml_capacity
         sql_to_execute = """
-                            SELECT capacity_numerator, capacity_denominator FROM parameters
+                            SELECT capacity_numerator, capacity_denominator, numerator, denominator, capacity_cap FROM parameters
                         """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             capacity_denominator = result.capacity_denominator
             capacity_numerator = result.capacity_numerator
+            numerator = result.numerator
+            denominator = result.denominator
+            cap = result.capacity_cap
 
     cost_per_capacity = 1000
-
     # Only buy capacity to double storage 
     both_capacity = 2
-    capacity_desired_min = (ml_capacity * capacity_numerator // capacity_denominator)-ml_capacity 
-    capacity_buying = usable_gold//(both_capacity*cost_per_capacity)
-    print(capacity_buying)
-    print(capacity_desired_min)
-    if capacity_buying < capacity_desired_min:
+    capacity_desired = (capacity * capacity_numerator // capacity_denominator)
+    capacity_desired_min = capacity_desired-capacity 
+    capacity_buying = (numerator*usable_gold)//(both_capacity*cost_per_capacity*denominator)
+    if capacity_buying < capacity_desired_min or capacity == cap:
         capacity_buying = 0
- 
+    if (capacity_buying + capacity) > cap:
+        capacity_buying = cap-capacity
     print(f"Bought {capacity_buying} potion_capacity and {capacity_buying} ml_capacity")
     return {
         "potion_capacity": capacity_buying,
@@ -129,3 +133,8 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
 
     print(f"Used {total_cost} For {ml_capacity_increment} ml_capacity and {potion_capacity_increment} potion_capacity")
     return "OK"
+
+if __name__ == "__main__":
+    print("RAN Inventory.py")
+    get_capacity_plan()
+
