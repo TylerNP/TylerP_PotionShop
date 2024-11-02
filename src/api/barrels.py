@@ -346,6 +346,7 @@ def simplified_plan(
     buy_count = []
     unique_barrels = []
     
+    ml_total = sum(ml for ml in ml_stored)
     #Determine If More ml Can Be Purchased For Later use
     count = 0
     MAX_ITERATIONS = 5000
@@ -366,11 +367,12 @@ def simplified_plan(
             ml_ratio[type_index] = 0
             continue
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
-        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
+        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel) or (ml_total+barrel_to_buy.ml_per_barrel)>ml_capacity:
             list_of_index[type_index] = list_of_index[type_index] + 1
             continue   
         buy_amt = 1
         usable_gold -= barrel_to_buy.price
+        ml_total += barrel_to_buy.ml_per_barrel
         ml_space[type_index] -= barrel_to_buy.ml_per_barrel
         if barrel_to_buy not in unique_barrels:
             unique_barrels.append(barrel_to_buy)
@@ -424,6 +426,12 @@ if __name__ == "__main__":
     usable_gold = 9150
     small_gold = 500
     ml_capacity = 60000
+
+    ml_needed = [5200,3300,2700,600]
+    ml_stored = [24866,33468,33566,800]
+    usable_gold = 9150
+    small_gold = 500
+    ml_capacity = 100000
     simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
     
     
