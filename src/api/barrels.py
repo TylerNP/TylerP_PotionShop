@@ -219,6 +219,7 @@ def barrel_plan_calculation(
     buy_count = []
     unique_barrels = []
 
+    ml_total = sum(ml for ml in ml_stored)
     count = 0
     MAX_ITERATIONS = 5000 # Extra Security For Infinite Loops
     while any (buy != 0 for buy in ml_can_buy):
@@ -238,11 +239,12 @@ def barrel_plan_calculation(
             ml_ratio[type_index] = 0
             continue
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
-        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
+        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel) or (ml_total+barrel_to_buy.ml_per_barrel)>ml_capacity:
             list_of_index[type_index] = list_of_index[type_index] + 1
             continue   
         buy_amt = 1 # minimum barrel amount to buy
         usable_gold -= barrel_to_buy.price
+        ml_total += barrel_to_buy.ml_per_barrel
         ml_space[type_index] -= barrel_to_buy.ml_per_barrel
         if barrel_to_buy not in unique_barrels:
             unique_barrels.append(barrel_to_buy)
