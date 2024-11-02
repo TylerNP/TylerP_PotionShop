@@ -127,6 +127,35 @@ class TestBarrelFunctions(unittest.TestCase):
         small_gold = 500
         ml_capacity = 10000
         self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+
+    def test_plan_simplifiied_9(self):
+        expected = []
+        ml_needed = [0,0,0,0]
+        ml_stored = [16000,12500,12500,0]
+        usable_gold = 10500
+        small_gold = 500
+        ml_capacity = 50000
+        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+
+    def test_plan_simplified_10(self):
+        expected = [
+                        {'sku': 'MEDIUM_RED_BARREL', 'quantity': 2}, 
+                        {'sku': 'MEDIUM_GREEN_BARREL', 'quantity': 2}, 
+                        {'sku': 'MEDIUM_BLUE_BARREL', 'quantity': 3}, 
+                        {'sku': 'LARGE_DARK_BARREL', 'quantity': 1}, 
+                        {'sku': 'SMALL_RED_BARREL', 'quantity': 3}, 
+                        {'sku': 'SMALL_GREEN_BARREL', 'quantity': 2}, 
+                        {'sku': 'SMALL_BLUE_BARREL', 'quantity': 3}, 
+                        {'sku': 'MINI_RED_BARREL', 'quantity': 1}, 
+                        {'sku': 'MINI_GREEN_BARREL', 'quantity': 1}
+                    ]
+        ml_needed = [5200,3300,2700,600]
+        ml_stored = [8166,8666,5968,800]
+        usable_gold = 9150
+        small_gold = 500
+        ml_capacity = 60000
+        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+
 class TestBottlerFunctions(unittest.TestCase):
     def none():
         print("NONE")

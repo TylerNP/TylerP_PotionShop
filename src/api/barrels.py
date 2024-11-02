@@ -155,7 +155,6 @@ def barrel_plan_calculation(
     plan = []
     num_types = 4
 
-    #Estimate how many types to buy
     ml_count = sum(1 for ml in ml_needed if ml != 0)
     if ml_count == 0:
         ml_count = num_types
@@ -170,8 +169,8 @@ def barrel_plan_calculation(
         desired_barrels.append(barrel)
     sorted_barrels = sorted(desired_barrels, key=lambda x: x.ml_per_barrel//x.price, reverse=True)
 
-    barrel_type = 1 # Barrel Potion_type only contains 1 at the type
-    for barrel in sorted_barrels: 
+    barrel_type = 1 # potion_type determined by position of 1
+    for barrel in sorted_barrels:
         barrel_types[barrel.potion_type.index(barrel_type)].append(barrel)
 
     ml_threshold = ml_capacity//num_types
@@ -190,20 +189,28 @@ def barrel_plan_calculation(
     elif not_buying_count > 0:
         ml_threshold = (ml_capacity-overflow_ml) // (num_types-not_buying_count)
 
+    minimum_ml_buyable = 200 # mini barrel amount
     ml_space = [0]*num_types
+
     for index in range(num_types):
         ml_space_remain = ml_threshold-ml_stored[index]
-        if ml_space_remain > 0 and ml_can_buy[index] == 1:
-            ml_space[index] = ml_space_remain  
+        if ml_can_buy[index] == 0:
+            continue
+        if ml_space_remain >= minimum_ml_buyable:
+            ml_space[index] = ml_space_remain
         else:
+            not_buying_count += 1
             ml_can_buy[index] = 0
-    
-    make_int = 10 # Scale Floats Into Ints
+
+    if (num_types-not_buying_count) == 1:
+        ml_space[ml_space.index(max(ml_space))] = ml_capacity-sum(ml_stored)
+
+    make_int = 10
     normal = sum(x*y for x, y in zip(ml_needed, ml_space))
     min_space = min([ml for ml in ml_space if ml > 0], default=0)
-    normal = normal if normal != 0 else min_space*make_int 
-
+    normal = normal if normal != 0 else min_space*make_int
     ml_ratio = [0]*num_types
+
     for i in range(len(ml_needed)):
         if ml_can_buy[i] == 0:
             ml_ratio[i] = 0
@@ -218,10 +225,9 @@ def barrel_plan_calculation(
     list_of_index = [0]*num_types
     buy_count = []
     unique_barrels = []
-
-    ml_total = sum(ml for ml in ml_stored)
+    
     count = 0
-    MAX_ITERATIONS = 5000 # Extra Security For Infinite Loops
+    MAX_ITERATIONS = 5000
     while any (buy != 0 for buy in ml_can_buy):
         count += 1
         if count > MAX_ITERATIONS:
@@ -239,12 +245,11 @@ def barrel_plan_calculation(
             ml_ratio[type_index] = 0
             continue
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
-        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel) or (ml_total+barrel_to_buy.ml_per_barrel)>ml_capacity:
+        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
             list_of_index[type_index] = list_of_index[type_index] + 1
             continue   
-        buy_amt = 1 # minimum barrel amount to buy
+        buy_amt = 1
         usable_gold -= barrel_to_buy.price
-        ml_total += barrel_to_buy.ml_per_barrel
         ml_space[type_index] -= barrel_to_buy.ml_per_barrel
         if barrel_to_buy not in unique_barrels:
             unique_barrels.append(barrel_to_buy)
@@ -255,7 +260,7 @@ def barrel_plan_calculation(
                 list_of_index[type_index] += 1
                 continue
             buy_count[unique_barrels.index(barrel_to_buy)] = new_quantity
-        relative_change = round(barrel_to_buy.ml_per_barrel*make_int/normal) or buy_amt # Ensure ratio is updated by at least minimum buying amount
+        relative_change = round(barrel_to_buy.ml_per_barrel*make_int/normal) or buy_amt # Ensure ratio is updated by at least buying amount
         ml_ratio_copy[type_index] -= relative_change
         type_index = (type_index+1) % num_types 
     
@@ -266,7 +271,7 @@ def barrel_plan_calculation(
         total_color[unique_barrels[i].potion_type.index(1)] += unique_barrels[i].ml_per_barrel * buy_count[i]
     print(total_color)
     print(plan)
-    return plan   
+    return plan  
 
 
 # Duplicate of barrel_plan_calcuation Where Changes Are Tested
@@ -318,13 +323,22 @@ def simplified_plan(
     elif not_buying_count > 0:
         ml_threshold = (ml_capacity-overflow_ml) // (num_types-not_buying_count)
 
+    minimum_ml_buyable = 200 # mini barrel amount
     ml_space = [0]*num_types
+
     for index in range(num_types):
         ml_space_remain = ml_threshold-ml_stored[index]
-        if ml_space_remain > 0 and ml_can_buy[index] == 1:
-            ml_space[index] = ml_space_remain  
+        if ml_can_buy[index] == 0:
+            continue
+        if ml_space_remain >= minimum_ml_buyable:
+            ml_space[index] = ml_space_remain
         else:
+            not_buying_count += 1
             ml_can_buy[index] = 0
+
+    if (num_types-not_buying_count) == 1:
+        ml_space[ml_space.index(max(ml_space))] = ml_capacity-sum(ml_stored)
+
     # Takes Dotproduct of ml_needed and ml_space and normalize to create weights for buying
     make_int = 10
     normal = sum(x*y for x, y in zip(ml_needed, ml_space))
@@ -348,7 +362,6 @@ def simplified_plan(
     buy_count = []
     unique_barrels = []
     
-    ml_total = sum(ml for ml in ml_stored)
     #Determine If More ml Can Be Purchased For Later use
     count = 0
     MAX_ITERATIONS = 5000
@@ -369,12 +382,11 @@ def simplified_plan(
             ml_ratio[type_index] = 0
             continue
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
-        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel) or (ml_total+barrel_to_buy.ml_per_barrel)>ml_capacity:
+        if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
             list_of_index[type_index] = list_of_index[type_index] + 1
             continue   
         buy_amt = 1
         usable_gold -= barrel_to_buy.price
-        ml_total += barrel_to_buy.ml_per_barrel
         ml_space[type_index] -= barrel_to_buy.ml_per_barrel
         if barrel_to_buy not in unique_barrels:
             unique_barrels.append(barrel_to_buy)
@@ -416,18 +428,20 @@ if __name__ == "__main__":
             Barrel(sku='LARGE_RED_BARREL', ml_per_barrel=10000, potion_type=[1, 0, 0, 0], price=500, quantity=30),
             Barrel(sku='LARGE_DARK_BARREL', ml_per_barrel=10000, potion_type=[0, 0, 0, 1], price=750, quantity=30)
         ]
+    """
     ml_needed = [0,0,0,0]
-    ml_stored = [2500,500,500,0]
+    ml_stored = [500,500,500,0]
     usable_gold = 10500
     small_gold = 500
     ml_capacity = 10000
-    simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    """
 
     ml_needed = [5200,3300,2700,600]
     ml_stored = [8166,8666,5968,800]
     usable_gold = 9150
     small_gold = 500
     ml_capacity = 60000
+    simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
 
     ml_needed = [5200,3300,2700,600]
     ml_stored = [24866,33468,33566,800]
@@ -435,6 +449,5 @@ if __name__ == "__main__":
     small_gold = 500
     ml_capacity = 100000
     simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
-    
     
 
