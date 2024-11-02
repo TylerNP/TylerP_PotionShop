@@ -34,4 +34,50 @@ def reset():
         #connection.execute(sqlalchemy.text(sql_to_execute))
         sql_to_execute = "UPDATE potions SET quantity = 0"
         connection.execute(sqlalchemy.text(sql_to_execute))
+        sql_to_execute = """
+                            INSERT INTO transactions (description, time_id) 
+                            VALUES ('RESET',(SELECT MAX(time.id) FROM time LIMIT 1)) 
+                            RETURNING id
+                        """
+        transaction_id = connection.execute(sqlalchemy.text(sql_to_execute)).scalar()
+        values = {"transaction_id":transaction_id}
+        sql_to_execute = """
+                            WITH potion_adjust AS (
+                                SELECT 
+                                    potion_ledgers.sku, 
+                                    -1*SUM(potion_ledgers.quantity) AS reset_amount
+                                FROM 
+                                    potion_ledgers 
+                                GROUP BY 
+                                    potion_ledgers.sku
+                            )
+
+                            INSERT INTO 
+                            potion_ledgers (sku, quantity, transaction_id) 
+                            (SELECT sku, reset_amount, :transaction_id FROM potion_adjust);
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
+        sql_to_execute = """
+                            WITH ml_adjust AS (
+                            SELECT
+                                -1*SUM(ml_ledgers.num_red_ml) AS red,
+                                -1*SUM(ml_ledgers.num_green_ml) AS green,
+                                -1*SUM(ml_ledgers.num_blue_ml) AS blue,
+                                -1*SUM(ml_ledgers.num_dark_ml) AS dark
+                            FROM
+                                ml_ledgers 
+                            )
+
+                            INSERT INTO 
+                            ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, transaction_id) 
+                            (SELECT red,green,blue,dark, :transaction_id FROM ml_adjust);
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
+        sql_to_execute = """
+                            INSERT INTO 
+                            gold_ledgers (gold, transaction_id)
+                            VALUES 
+                            (-1*(SELECT SUM(gold_ledgers.gold) FROM gold_ledgers)+100, :transaction_id);
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
     return "OK"
