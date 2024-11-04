@@ -161,6 +161,8 @@ def barrel_plan_calculation(
     plan = []
     num_types = 4
 
+    if sum(ml_stored) == ml_capacity:
+        return plan
     ml_count = sum(1 for ml in ml_needed if ml != 0)
     if ml_count == 0:
         ml_count = num_types
@@ -175,7 +177,7 @@ def barrel_plan_calculation(
         desired_barrels.append(barrel)
     sorted_barrels = sorted(desired_barrels, key=lambda x: x.ml_per_barrel//x.price, reverse=True)
 
-    barrel_type = 1 # potion_type determined by position of 1
+    barrel_type = 1
     for barrel in sorted_barrels:
         barrel_types[barrel.potion_type.index(barrel_type)].append(barrel)
 
@@ -220,7 +222,7 @@ def barrel_plan_calculation(
     for i in range(len(ml_needed)):
         if ml_can_buy[i] == 0:
             continue
-        ml_ratio[i] = round(ml_needed[i]*ml_space[i]*make_int/normal) or 1 
+        ml_ratio[i] = round(ml_needed[i]*ml_space[i]*make_int/normal) or 1
 
     ml_ratio_copy = ml_ratio.copy()
     max_index = ml_ratio.index(max(ml_ratio))
@@ -289,6 +291,8 @@ def simplified_plan(
     plan = []
     num_types = 4
 
+    if sum(ml_stored) == ml_capacity:
+        return plan
     ml_count = sum(1 for ml in ml_needed if ml != 0)
     if ml_count == 0:
         ml_count = num_types
@@ -450,12 +454,11 @@ if __name__ == "__main__":
     #simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
 
     ml_needed = [10280,5400,1920,4200]
-    ml_stored = [33491,37218,35491,19000]
+    ml_stored = [37491,37218,36291,39000]
     usable_gold = 40645
     small_gold = 500
     ml_capacity = 150000
     simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
-    barrel_plan_calculation(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
     #get_wholesale_purchase_plan(barrel_catalog)
     
 
