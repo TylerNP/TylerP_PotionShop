@@ -219,12 +219,9 @@ def barrel_plan_calculation(
 
     for i in range(len(ml_needed)):
         if ml_can_buy[i] == 0:
-            ml_ratio[i] = 0
             continue
-        if (ml_needed[i] == 0 and ml_space[i] > 0):
-            ml_ratio[i] = 1
-        else:
-            ml_ratio[i] = round(ml_needed[i]*ml_space[i]*make_int/normal)
+        ml_ratio[i] = round(ml_needed[i]*ml_space[i]*make_int/normal) or 1 
+
     ml_ratio_copy = ml_ratio.copy()
     max_index = ml_ratio.index(max(ml_ratio))
     type_index = max_index
@@ -354,13 +351,9 @@ def simplified_plan(
 
     for i in range(len(ml_needed)):
         if ml_can_buy[i] == 0:
-            ml_ratio[i] = 0
             continue
-        # Ensure To Refill Stock Even if not needed
-        if (ml_needed[i] == 0 and ml_space[i] > 0):
-            ml_ratio[i] = 1
-        else:
-            ml_ratio[i] = round(ml_needed[i]*ml_space[i]*make_int/normal)
+        ml_ratio[i] = round(ml_needed[i]*ml_space[i]*make_int/normal) or 1 # Ensure To Refill Stock Even if not needed for brewing
+    
     ml_ratio_copy = ml_ratio.copy()
     max_index = ml_ratio.index(max(ml_ratio))
     type_index = max_index
@@ -370,7 +363,7 @@ def simplified_plan(
     
     #Determine If More ml Can Be Purchased For Later use
     count = 0
-    MAX_ITERATIONS = 5000
+    MAX_ITERATIONS = 100
     while any (buy != 0 for buy in ml_can_buy):
         count += 1
         if count > MAX_ITERATIONS:
@@ -455,6 +448,14 @@ if __name__ == "__main__":
     small_gold = 500
     ml_capacity = 100000
     #simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+
+    ml_needed = [10280,5400,1920,4200]
+    ml_stored = [33491,37218,35491,19000]
+    usable_gold = 40645
+    small_gold = 500
+    ml_capacity = 150000
+    simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    barrel_plan_calculation(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
     #get_wholesale_purchase_plan(barrel_catalog)
     
 

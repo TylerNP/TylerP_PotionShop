@@ -1,6 +1,7 @@
 from src.api import barrels, bottler
 from src.api.barrels import Barrel
 import unittest
+from src.api.barrels import simplified_plan as barrel_plan
 
 """
 Test Barrel Plan Logic
@@ -35,7 +36,7 @@ class TestBarrelFunctions(unittest.TestCase):
         usable_gold = 2500
         small_gold = 500
         ml_capacity = 40000
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
     def test_plan_simplified_2(self):
         expected = [
                         {'sku': 'SMALL_RED_BARREL', 'quantity': 2}, 
@@ -49,7 +50,7 @@ class TestBarrelFunctions(unittest.TestCase):
         small_gold = 500
         ml_capacity = 10000
         
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
     def test_plan_simplified_3(self):
         expected = [
                         {'sku': 'SMALL_RED_BARREL', 'quantity': 1}, 
@@ -64,7 +65,7 @@ class TestBarrelFunctions(unittest.TestCase):
         usable_gold = 500
         small_gold = 500
         ml_capacity = 10000
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
     def test_plan_simplified_4(self):
         expected = [
                         {'sku': 'MEDIUM_RED_BARREL', 'quantity': 1}, 
@@ -79,7 +80,7 @@ class TestBarrelFunctions(unittest.TestCase):
         usable_gold = 1500
         small_gold = 500
         ml_capacity = 10000
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
     def test_plan_simplified_5(self):
         expected = [
                         {'sku': 'MEDIUM_GREEN_BARREL', 'quantity': 1}, 
@@ -92,7 +93,7 @@ class TestBarrelFunctions(unittest.TestCase):
         usable_gold = 1500
         small_gold = 500
         ml_capacity = 10000
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
 
     def test_plan_simplified_6(self):
         expected = [
@@ -108,7 +109,7 @@ class TestBarrelFunctions(unittest.TestCase):
         usable_gold = 10500
         small_gold = 500
         ml_capacity = 10000
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
 
     def test_plan_simplified_7(self):
         expected = []
@@ -117,7 +118,7 @@ class TestBarrelFunctions(unittest.TestCase):
         usable_gold = 10500
         small_gold = 500
         ml_capacity = 10000
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
 
     def test_plan_simplified_8(self):
         expected = []
@@ -126,7 +127,7 @@ class TestBarrelFunctions(unittest.TestCase):
         usable_gold = 50
         small_gold = 500
         ml_capacity = 10000
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
 
     def test_plan_simplifiied_9(self):
         expected = []
@@ -135,7 +136,7 @@ class TestBarrelFunctions(unittest.TestCase):
         usable_gold = 10500
         small_gold = 500
         ml_capacity = 50000
-        self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
+        self.assertEqual(barrel_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
 
     def test_plan_simplified_10(self):
         expected = [
