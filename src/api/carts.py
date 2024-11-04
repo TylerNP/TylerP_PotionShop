@@ -287,13 +287,11 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         # REPLACE BELOW LATER 
-        sql_to_execute = """SELECT 
-                            SUM(potion_quantity*
-                                (SELECT potions.price FROM potions 
-                                WHERE potions.sku = cart_items.sku)) AS gold_total, 
-                            SUM(potion_quantity) AS total_potions
-                            FROM cart_items WHERE cart_id = :cart_id
-                        """
+        sql_to_execute = """
+            SELECT 
+                (SELECT SUM(gold) FROM gold_ledgers WHERE transaction_id = :transaction_id) AS gold,
+                (SELECT -1*SUM(quantity) FROM potion_ledgers WHERE transaction_id = :transaction_id) AS num_potions
+        """
         results = connection.execute(sqlalchemy.text(sql_to_execute), values)
         connection.execute(sqlalchemy.text("DELETE FROM carts where carts.id = :cart_id"), {"cart_id":cart_id})
         gold_total = 0

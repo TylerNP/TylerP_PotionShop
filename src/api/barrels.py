@@ -68,7 +68,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
                             INSERT INTO gold_ledgers (gold, transaction_id)
-                            VALUES (:gold_cost, :transaction_id)
+                            VALUES (-1*:gold_cost, :transaction_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
@@ -103,16 +103,16 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     with db.engine.begin() as connection: 
         sql_to_execute = """
-                SELECT 
-                    (10000*ml_capacity) AS capacity, 
-                    gold-(SELECT gold_threshold FROM parameters) AS usable_gold, 
-                    (SELECT starting_gold_saving FROM parameters) AS small_gold,
-                    num_red_ml, 
-                    num_green_ml, 
-                    num_blue_ml, 
-                    num_dark_ml 
-                FROM global_inventory
-            """
+            SELECT 
+                (10000*(SELECT ml_capacity FROM global_inventory)) AS capacity, 
+                (SELECT SUM(gold) FROM gold_ledgers)-(SELECT gold_threshold FROM parameters) AS usable_gold, 
+                (SELECT starting_gold_saving FROM parameters) AS small_gold,
+                SUM(num_red_ml) AS num_red_ml, 
+                SUM(num_green_ml) AS num_red_ml, 
+                SUM(num_blue_ml) AS num_blue_ml, 
+                SUM(num_dark_ml) AS num_dark_ml 
+            FROM ml_ledgers
+        """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             ml_capacity = result.capacity
@@ -125,16 +125,22 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         
         #ml Needed For Immediate Brewing
         sql_to_execute = """
-                SELECT result.threshold, quantity, red, green, blue, dark 
-                FROM potions, (
-                    SELECT (potion_capacity * 50 / (
-                        SELECT COUNT(1) 
-                        FROM potions 
-                        WHERE brew = TRUE)) AS threshold 
-                    FROM global_inventory) AS result
-                WHERE brew = TRUE 
-                AND quantity < result.threshold
-            """
+            SELECT result.threshold, SUM(potion_ledgers.quantity) AS num, red, green, blue, dark 
+            FROM potions, potion_ledgers, (
+                SELECT (potion_capacity * 50 / (
+                    SELECT COUNT(1) 
+                    FROM potions 
+                    WHERE brew = TRUE)) AS threshold 
+                FROM global_inventory) AS result
+            WHERE brew = TRUE 
+            AND potions.sku = potion_ledgers.sku
+            GROUP BY
+                potion_ledgers.sku,
+                result.threshold,
+                red, green, blue, dark
+            HAVING 
+                SUM(potion_ledgers.quantity) < result.threshold
+        """
         specific_pots = connection.execute(sqlalchemy.text(sql_to_execute))
         for pots in specific_pots:
             ml_needed[0] += pots.red*(pots.threshold-pots.quantity)

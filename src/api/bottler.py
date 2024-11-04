@@ -145,11 +145,22 @@ def get_bottle_plan():
     potion_storage_left = 0
     with db.engine.begin() as connection: 
         sql_to_execute = """
-                            SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, 
-                            potion_capacity*50/(SELECT COUNT(1) FROM potions WHERE brew = TRUE) AS threshold,
-                            potion_capacity*50-(SELECT SUM(quantity) FROM potions) AS remaining_storage 
-                            FROM global_inventory
-                        """
+            SELECT 
+                SUM(ml_ledgers.num_red_ml) AS num_red_ml,
+                SUM(ml_ledgers.num_green_ml) AS num_green_ml,
+                SUM(ml_ledgers.num_blue_ml) AS num_blue_ml,
+                SUM(ml_ledgers.num_dark_ml) AS num_dark_ml,
+                (
+                    (SELECT potion_capacity FROM global_inventory) * 50 /
+                    (SELECT COUNT(1) FROM potions WHERE brew = TRUE)
+                ) AS threshold,
+                (
+                    (SELECT potion_capacity FROM global_inventory) * 50 - 
+                    (SELECT SUM(quantity) FROM potion_ledgers)
+                ) AS remaining_storage
+            FROM 
+                ml_ledgers
+        """
         results = connection.execute(sqlalchemy.text(sql_to_execute))
         potion_threshold = 0
         potion_storage_left = 0

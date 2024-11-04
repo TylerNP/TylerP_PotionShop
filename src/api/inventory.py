@@ -22,10 +22,15 @@ def get_inventory():
     number_of_potions = 0
     with db.engine.begin() as connection:
         sql_to_execute = """
-                            SELECT (num_red_ml+num_green_ml+num_blue_ml+num_dark_ml) AS ml_total, 
-                            gold, ml_capacity, potion_capacity, (SELECT SUM(potions.quantity) FROM potions) AS num_potions
-                            FROM global_inventory
-                        """
+            SELECT 
+                (SELECT SUM(num_red_ml) + SUM(num_green_ml) + SUM(num_blue_ml) + SUM(num_dark_ml) FROM ml_ledgers) AS ml_total,
+                (SELECT SUM(gold) FROM gold_ledgers) AS gold,
+                (SELECT SUM(quantity) FROM potion_ledgers) AS num_potions,
+                ml_capacity,
+                potion_capacity
+            FROM 
+                global_inventory;
+        """
         results = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in results:
             gold = result.gold
@@ -48,7 +53,7 @@ def get_capacity_plan():
     denominator = 0
     cap = 0
     with db.engine.begin() as connection:
-        sql_to_execute = "SELECT gold, ml_capacity FROM global_inventory"
+        sql_to_execute = "SELECT (SELECT SUM(gold) FROM gold_ledgers) AS gold, ml_capacity FROM global_inventory"
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             usable_gold = result.gold
@@ -115,7 +120,7 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
         values["transaction_id"] = connection.execute(sqlalchemy.text(sql_to_execute), values).scalar()
         sql_to_execute = """
                             INSERT INTO gold_ledgers (gold, transaction_id)
-                            VALUES (:gold_cost, :transaction_id)
+                            VALUES (-1*:gold_cost, :transaction_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
