@@ -146,10 +146,10 @@ def get_bottle_plan():
     with db.engine.begin() as connection: 
         sql_to_execute = """
             SELECT 
-                SUM(ml_ledgers.num_red_ml) AS num_red_ml,
-                SUM(ml_ledgers.num_green_ml) AS num_green_ml,
-                SUM(ml_ledgers.num_blue_ml) AS num_blue_ml,
-                SUM(ml_ledgers.num_dark_ml) AS num_dark_ml,
+                SUM(ml_ledgers.num_red_ml)::int AS num_red_ml,
+                SUM(ml_ledgers.num_green_ml)::int AS num_green_ml,
+                SUM(ml_ledgers.num_blue_ml)::int AS num_blue_ml,
+                SUM(ml_ledgers.num_dark_ml)::int AS num_dark_ml,
                 (
                     (SELECT potion_capacity FROM global_inventory) * 50 /
                     (SELECT COUNT(1) FROM potions WHERE brew = TRUE)

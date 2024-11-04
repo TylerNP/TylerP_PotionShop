@@ -105,12 +105,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         sql_to_execute = """
             SELECT 
                 (10000*(SELECT ml_capacity FROM global_inventory)) AS capacity, 
-                (SELECT SUM(gold) FROM gold_ledgers)-(SELECT gold_threshold FROM parameters) AS usable_gold, 
+                ((SELECT SUM(gold) FROM gold_ledgers)-(SELECT gold_threshold FROM parameters)) AS usable_gold, 
                 (SELECT starting_gold_saving FROM parameters) AS small_gold,
-                SUM(num_red_ml) AS num_red_ml, 
-                SUM(num_green_ml) AS num_red_ml, 
-                SUM(num_blue_ml) AS num_blue_ml, 
-                SUM(num_dark_ml) AS num_dark_ml 
+                SUM(num_red_ml)::int AS num_red_ml, 
+                SUM(num_green_ml)::int AS num_green_ml, 
+                SUM(num_blue_ml)::int AS num_blue_ml, 
+                SUM(num_dark_ml)::int AS num_dark_ml 
             FROM ml_ledgers
         """
         query = connection.execute(sqlalchemy.text(sql_to_execute))
@@ -125,7 +125,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         
         #ml Needed For Immediate Brewing
         sql_to_execute = """
-            SELECT result.threshold, SUM(potion_ledgers.quantity) AS num, red, green, blue, dark 
+            SELECT result.threshold, SUM(potion_ledgers.quantity) AS quantity, red, green, blue, dark 
             FROM potions, potion_ledgers, (
                 SELECT (potion_capacity * 50 / (
                     SELECT COUNT(1) 
@@ -447,13 +447,14 @@ if __name__ == "__main__":
     usable_gold = 9150
     small_gold = 500
     ml_capacity = 60000
-    simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    #simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
 
     ml_needed = [5200,3300,2700,600]
     ml_stored = [24866,33468,33566,800]
     usable_gold = 9150
     small_gold = 500
     ml_capacity = 100000
-    simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    #simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    #get_wholesale_purchase_plan(barrel_catalog)
     
 
