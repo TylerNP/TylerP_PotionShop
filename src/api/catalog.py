@@ -58,7 +58,7 @@ def get_catalog():
             LEFT JOIN potion_count ON potions.sku = potion_count.sku
             WHERE NOT EXISTS (SELECT popular.sku FROM popular WHERE popular.sku = potions.sku)
             AND potions.quantity > 0
-            ORDER BY potions.id DESC, potions.quantity DESC
+            ORDER BY potions.quantity DESC
             LIMIT 6-(SELECT COUNT(1) FROM popular)
             ) UNION ALL (
             SELECT potions.sku, potion_count.quantity::int, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name 
