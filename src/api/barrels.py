@@ -363,7 +363,7 @@ def simplified_plan(
     
     #Determine If More ml Can Be Purchased For Later use
     count = 0
-    MAX_ITERATIONS = 100
+    MAX_ITERATIONS = 5000
     while any (buy != 0 for buy in ml_can_buy):
         count += 1
         if count > MAX_ITERATIONS:
