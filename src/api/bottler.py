@@ -161,7 +161,10 @@ def get_bottle_plan():
             FROM 
                 ml_ledgers
         """
-        results = connection.execute(sqlalchemy.text(sql_to_execute))
+        try:
+            results = connection.execute(sqlalchemy.text(sql_to_execute))
+        except sqlalchemy.exc.DataError:
+            return {}
         potion_threshold = 0
         potion_storage_left = 0
         for result in results:
@@ -460,4 +463,4 @@ if __name__ == "__main__":
     varied_potion = vary_potion(new_potion, 34, 3)
     print(varied_potion)
 
-    #print(get_bottle_plan())
+    print(get_bottle_plan())
