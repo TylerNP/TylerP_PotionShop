@@ -177,7 +177,6 @@ def get_bottle_plan():
             ml_available[1] = result.num_green_ml
             ml_available[2] = result.num_blue_ml
             ml_available[3] = result.num_dark_ml
-            print(result.threshold)
             potion_threshold = result.threshold
             potion_storage_left = result.remaining_storage
 
