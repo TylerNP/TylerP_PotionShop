@@ -148,7 +148,7 @@ def get_bottle_plan():
         try:
             results = connection.execute(sqlalchemy.text(sql_to_execute))
         except sqlalchemy.exc.DataError:
-            return {}
+            return []
         potion_threshold = 0
         potion_storage_left = 0
         for result in results:
