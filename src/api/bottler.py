@@ -127,28 +127,42 @@ def get_bottle_plan():
     unique_potions = []
     potion_brew_amount = []
     potion_storage_left = 0
-    with db.engine.begin() as connection: 
+    with db.engine.begin() as connection:
+        try:
+            connection.execute(sqlalchemy.text("SELECT 1 FROM potions WHERE brew = TRUE LIMIT 1")).scalar_one()
+        except sqlalchemy.exc.NoResultFound:
+            return []
+
         sql_to_execute = """
+            WITH pot_split AS (
+                SELECT 
+                    (SELECT potion_capacity FROM global_inventory) *50/ (SELECT COUNT(1) FROM potions WHERE brew = TRUE) AS threshold
+            ),
+            pot_threshold AS (
+                SELECT 
+                CASE
+                    WHEN pot_split.threshold <  parameters.potion_cap THEN pot_split.threshold 
+                ELSE 
+                    parameters.potion_cap
+                END AS threshold
+                FROM pot_split, parameters
+            ),
+            pot_remaining AS (
+                SELECT
+                    (SELECT potion_capacity FROM global_inventory) *50- (SELECT SUM(quantity) FROM potion_ledgers) AS stored
+            )
+
             SELECT 
                 SUM(ml_ledgers.num_red_ml)::int AS num_red_ml,
                 SUM(ml_ledgers.num_green_ml)::int AS num_green_ml,
                 SUM(ml_ledgers.num_blue_ml)::int AS num_blue_ml,
                 SUM(ml_ledgers.num_dark_ml)::int AS num_dark_ml,
-                (
-                    (SELECT potion_capacity FROM global_inventory) * 50 /
-                    (SELECT COUNT(1) FROM potions WHERE brew = TRUE)
-                ) AS threshold,
-                (
-                    (SELECT potion_capacity FROM global_inventory) * 50 - 
-                    (SELECT SUM(quantity) FROM potion_ledgers)
-                ) AS remaining_storage
+                (SELECT pot_threshold.threshold FROM pot_threshold) AS threshold,
+                (SELECT pot_remaining.stored FROM pot_remaining) AS remaining_storage
             FROM 
                 ml_ledgers
         """
-        try:
-            results = connection.execute(sqlalchemy.text(sql_to_execute))
-        except sqlalchemy.exc.DataError:
-            return []
+        results = connection.execute(sqlalchemy.text(sql_to_execute))
         potion_threshold = 0
         potion_storage_left = 0
         for result in results:
@@ -156,6 +170,7 @@ def get_bottle_plan():
             ml_available[1] = result.num_green_ml
             ml_available[2] = result.num_blue_ml
             ml_available[3] = result.num_dark_ml
+            print(result.threshold)
             potion_threshold = result.threshold
             potion_storage_left = result.remaining_storage
 
@@ -442,9 +457,9 @@ def vary_potion(potion : dict[str, any], step : int, degree : int) -> dict[str, 
         return ValueError
 
 if __name__ == "__main__":
-    new_potion = create_random_potion(7, 1, 25)
-    print(new_potion)
-    varied_potion = vary_potion(new_potion, 34, 3)
-    print(varied_potion)
+    #new_potion = create_random_potion(7, 1, 25)
+    #print(new_potion)
+    #varied_potion = vary_potion(new_potion, 34, 3)
+    #print(varied_potion)
 
     print(get_bottle_plan())
