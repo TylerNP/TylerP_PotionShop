@@ -71,15 +71,6 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                             VALUES (-1*:gold_cost, :transaction_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
-        sql_to_execute = """
-                            UPDATE global_inventory 
-                            SET gold = gold - :gold_cost,
-                            num_red_ml = num_red_ml + :red,
-                            num_green_ml = num_green_ml + :green,
-                            num_blue_ml = num_blue_ml + :blue,
-                            num_dark_ml = num_dark_ml + :dark
-                        """
-        connection.execute(sqlalchemy.text(sql_to_execute), values) 
     for index in range(len(ml_type)):
         print("Bought %d %s ml" % (ml_bought[index], ml_type[index]))
     return "OK"

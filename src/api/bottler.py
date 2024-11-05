@@ -105,22 +105,6 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
         sql_to_execute = """
-                            UPDATE global_inventory 
-                            SET num_red_ml = num_red_ml - :red,
-                            num_green_ml = num_green_ml - :green,
-                            num_blue_ml = num_blue_ml - :blue,
-                            num_dark_ml = num_dark_ml - :dark,
-                            num_potions = (SELECT SUM(quantity) FROM potions)
-                        """
-        values = {
-                    "red":ml_used[0], 
-                    "green":ml_used[1], 
-                    "blue":ml_used[2], 
-                    "dark":ml_used[3],
-                    "transaction_id":transaction_id
-                }
-        connection.execute(sqlalchemy.text(sql_to_execute), values)
-        sql_to_execute = """
                             INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, transaction_id)
                             VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :transaction_id)
                         """
