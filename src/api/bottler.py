@@ -104,6 +104,13 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                             AND q.pot_dark = p.dark
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
+        values = {
+            "red": ml_used[0],
+            "green":ml_used[1],
+            "blue":ml_used[2],
+            "dark":ml_used[3],
+            "transaction_id":transaction_id
+        }
         sql_to_execute = """
                             INSERT INTO ml_ledgers (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, transaction_id)
                             VALUES (-1*:red, -1*:green, -1*:blue, -1*:dark, :transaction_id)
