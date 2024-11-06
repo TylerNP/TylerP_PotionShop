@@ -337,6 +337,7 @@ def update_potion_brew_list() -> object:
                                 ) AS time_filtered
                             WHERE 
                                 potions.sku = potion_ledgers.sku 
+                                AND potions.price > 10
                                 AND potion_ledgers.transaction_id = transactions.id 
                                 AND transactions.time_id = time_filtered.id
                                 AND potion_ledgers.quantity < 0 
@@ -380,28 +381,31 @@ def create_random_potion(increment : int, type : int, price : int) -> dict[str, 
         return ValueError
     random.seed(version=2)
     num_types = 4
-    ml = [0]*num_types
+    potion_type = [0]*num_types
     total = 100
     if type == 1: 
         index = random.randrange(0,num_types)
         for index in range(num_types-1):
-            ml[index] = random.randrange(0,total+1,increment)
-            total = total - ml[index]  
+            potion_type[index] = random.randrange(0,total+1,increment)
+            total = total - potion_type[index]  
             index = (index+1)%4
-        ml[index] = total
+        potion_type[index] = total
     elif (type == 2):
         if total%increment != 0:
-            ml[random.randrange(0,num_types)] = total%increment
+            potion_type[random.randrange(0,num_types)] = total%increment
         for _ in range(total//increment):
-            ml[random.randrange(0,num_types)] += increment
+            potion_type[random.randrange(0,num_types)] += increment
     else:
         return NotImplemented
-    strings = generate_name_sku(ml)
+    strings = generate_name_sku(potion_type)
     return {
                 "sku":strings["sku"],
                 "name":strings["name"],
                 "price":price,
-                "potion_type":ml
+                "red":potion_type[0],
+                "green":potion_type[1],
+                "blue":potion_type[2],
+                "dark":potion_type[3]
     }
 
 def generate_name_sku(potion_type : list[int]) -> dict[str, str]:
@@ -421,6 +425,8 @@ def generate_name_sku(potion_type : list[int]) -> dict[str, str]:
             if (index == num_types-1):
                 break
             name += '_'
+    if name[-1] == "_":
+        name = name[0:len(name)-1]
     return {
                 "sku":sku,
                 "name":name
@@ -455,17 +461,42 @@ def vary_potion(potion : dict[str, any], step : int, degree : int) -> dict[str, 
                     "sku":strings["sku"],
                     "name":strings["name"],
                     "price":potion["price"],
-                    "potion_type":potion_type
+                    "red":potion_type[0],
+                    "green":potion_type[1],
+                    "blue":potion_type[2],
+                    "dark":potion_type[3]
         }
     elif step//degree < max_ml:
         return create_random_potion(step//degree, 2, potion["price"])
     else:
         return ValueError
 
+def insert_new_potion(potion : dict[str, any]):
+    print(potion)
+    sql_to_execute = """
+        SELECT 1 FROM potions WHERE red = :red AND green = :green AND blue = :blue AND dark = :dark
+    """
+    insert = False
+    with db.engine.begin() as connection:
+        try: 
+            connection.execute(sqlalchemy.text(sql_to_execute), potion).scalar_one()
+        except sqlalchemy.exc.NoResultFound:
+            sql_to_execute = """
+                INSERT INTO potions (price, sku, name, red, green, blue, dark) 
+                VALUES (:price, :sku, :name, :red, :green, :blue, :dark)
+            """
+            connection.execute(sqlalchemy.text(sql_to_execute), potion)
+            sql_to_execute = """
+                INSERT INTO new_potion (sku, tick_created) VALUES (:sku, (SELECT MAX(id) FROM time))
+            """
+            connection.execute(sqlalchemy.text(sql_to_execute), potion)
+            insert = True
+        print(f"Added New Potion {potion}: {insert}")
+
 if __name__ == "__main__":
-    #new_potion = create_random_potion(7, 1, 25)
-    #print(new_potion)
+    new_potion = create_random_potion(20, 1, 25)
+    insert_new_potion(new_potion)
     #varied_potion = vary_potion(new_potion, 34, 3)
     #print(varied_potion)
 
-    print(get_bottle_plan())
+    #print(get_bottle_plan())
