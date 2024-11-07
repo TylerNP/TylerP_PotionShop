@@ -64,7 +64,7 @@ def search_orders(
     offset = page * limit
 
     if sort_col == search_sort_options.customer_name:
-        order_by = db.customers.c.name
+        order_by = db.customers.c.customer_name
     elif sort_col == search_sort_options.item_sku:
         order_by = db.customer_purchases.c.sku
     elif sort_col == search_sort_options.line_item_total:
