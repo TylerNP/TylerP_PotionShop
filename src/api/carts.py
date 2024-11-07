@@ -55,7 +55,10 @@ def search_orders(
     time is 5 total line items.
     """
     limit = 5
-    offset = (int(search_page)-1) * limit
+    page = 0
+    if search_page:
+        page = int(search_page)
+    offset = page * limit
 
     if sort_col == search_sort_options.customer_name:
         order_by = db.customers.c.name
@@ -107,8 +110,8 @@ def search_orders(
                 }
             )
 
-    previous = f"/carts/search?search_page={int(search_page)-1}&sort_col=timestamp&sort_order=desc" if int(search_page) > 1 else ""
-    next = f"/carts/search?search_page={int(search_page)+1}&sort_col=timestamp&sort_order=desc" if len(orders) == limit else ""
+    previous = f"/carts/search?search_page={page-1}&sort_col=timestamp&sort_order=desc" if page > 1 else ""
+    next = f"/carts/search?search_page={page+1}&sort_col=timestamp&sort_order=desc" if len(orders) == limit else ""
 
     return {
         "previous": previous,
