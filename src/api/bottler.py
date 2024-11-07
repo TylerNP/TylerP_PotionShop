@@ -471,7 +471,7 @@ def vary_potion(potion : dict[str, any], step : int, degree : int) -> dict[str, 
     else:
         return ValueError
 
-def insert_new_potion(potion : dict[str, any]):
+def insert_new_potion(potion : dict[str, any]) -> bool:
     print(potion)
     sql_to_execute = """
         SELECT 1 FROM potions WHERE red = :red AND green = :green AND blue = :blue AND dark = :dark
@@ -492,10 +492,10 @@ def insert_new_potion(potion : dict[str, any]):
             connection.execute(sqlalchemy.text(sql_to_execute), potion)
             insert = True
         print(f"Added New Potion {potion}: {insert}")
+    return insert
 
 if __name__ == "__main__":
     new_potion = create_random_potion(20, 1, 25)
-    insert_new_potion(new_potion)
     #varied_potion = vary_potion(new_potion, 34, 3)
     #print(varied_potion)
 
