@@ -66,7 +66,7 @@ def search_orders(
     if sort_col == search_sort_options.customer_name:
         order_by = db.customers.c.customer_name
     elif sort_col == search_sort_options.item_sku:
-        order_by = db.customer_purchases.c.sku
+        order_by = db.potion_ledgers.c.sku
     elif sort_col == search_sort_options.line_item_total:
         order_by = db.customer_purchases.c.gold_cost
     elif sort_col == search_sort_options.timestamp:
