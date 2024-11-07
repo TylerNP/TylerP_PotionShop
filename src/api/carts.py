@@ -54,19 +54,66 @@ def search_orders(
     Your results must be paginated, the max results you can return at any
     time is 5 total line items.
     """
+    limit = 5
+    offset = (int(search_page)-1) * limit
+
+    if sort_col == search_sort_options.customer_name:
+        order_by = db.customers.c.name
+    elif sort_col == search_sort_options.item_sku:
+        order_by = db.customer_purchases.c.sku
+    elif sort_col == search_sort_options.line_item_total:
+        order_by = db.customer_purchases.c.gold_cost
+    elif sort_col == search_sort_options.timestamp:
+        order_by = db.transactions.c.created_at
+    else:
+        assert False
+
+    if sort_order == search_sort_order.desc:
+        order_by = sqlalchemy.desc(order_by)
+
+    stmt = (
+        sqlalchemy.select(
+            db.customer_purchases.c.id.label("line_item_id"),
+            db.potion_ledgers.c.sku.label("item_sku"),
+            db.customers.c.customer_name.label("customer_name"),
+            db.customer_purchases.c.gold_cost.label("line_item_total"),
+            db.transactions.c.created_at.label("timestamp")
+        )
+        .select_from(db.transactions)
+        .join(db.customer_purchases, db.customer_purchases.c.transaction_id == db.transactions.c.id)
+        .join(db.potion_ledgers, db.potion_ledgers.c.transaction_id == db.transactions.c.id)
+        .join(db.customers, db.customer_purchases.c.customer_id == db.customers.c.id)
+        .order_by(order_by)
+        .limit(limit)
+        .offset(offset)
+    )
+
+    if customer_name:
+        stmt.where(db.customers.c.customer_name.ilike(f"{customer_name}"))
+    if potion_sku:
+        stmt.where(db.potion_ledgers.c.sku.ilike(f"{potion_sku}"))
+
+    orders = []
+    with db.engine.connect() as connection:
+        result = connection.execute(stmt)
+        for row in result:
+            orders.append(
+                {
+                    "line_item_id":row.line_item_id,
+                    "item_sku": row.item_sku,
+                    "customer_name": row.customer_name,
+                    "line_item_total": row.line_item_total,
+                    "timestamp": row.timestamp
+                }
+            )
+
+    previous = f"/carts/search?search_page={int(search_page)-1}&sort_col=timestamp&sort_order=desc" if int(search_page) > 1 else ""
+    next = f"/carts/search?search_page={int(search_page)+1}&sort_col=timestamp&sort_order=desc" if len(orders) == limit else ""
 
     return {
-        "previous": "",
-        "next": "",
-        "results": [
-            {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
-            }
-        ],
+        "previous": previous,
+        "next": next,
+        "results": orders
     }
 
 
