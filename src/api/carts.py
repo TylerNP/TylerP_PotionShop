@@ -57,11 +57,12 @@ def search_orders(
     limit = 5
     page = 0
     if search_page:
-        try:
-            page = int(search_page)
-        except:
-            print(search_page)
+        page = int(search_page)
     offset = page * limit
+
+    print(customer_name)
+    print(potion_sku)
+    print(search_page)
 
     if sort_col == search_sort_options.customer_name:
         order_by = db.customers.c.customer_name
@@ -89,15 +90,17 @@ def search_orders(
         .join(db.customer_purchases, db.customer_purchases.c.transaction_id == db.transactions.c.id)
         .join(db.potion_ledgers, db.potion_ledgers.c.transaction_id == db.transactions.c.id)
         .join(db.customers, db.customer_purchases.c.customer_id == db.customers.c.id)
-        .order_by(order_by)
         .limit(limit)
         .offset(offset)
+        .order_by(order_by)
     )
 
     if customer_name:
-        stmt.where(db.customers.c.customer_name.ilike(f"{customer_name}"))
+        print("RAN")
+        stmt = stmt.where(db.customers.c.customer_name.ilike(f"%{customer_name}%"))
     if potion_sku:
-        stmt.where(db.potion_ledgers.c.sku.ilike(f"{potion_sku}"))
+        print("RANs")
+        stmt = stmt.where(db.potion_ledgers.c.sku.ilike(f"%{potion_sku}%"))
 
     orders = []
     with db.engine.connect() as connection:
