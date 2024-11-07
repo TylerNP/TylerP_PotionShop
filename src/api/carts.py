@@ -113,8 +113,8 @@ def search_orders(
                 }
             )
 
-    previous = f"/carts/search?search_page={page-1}&sort_col=timestamp&sort_order=desc" if page > 1 else ""
-    next = f"/carts/search?search_page={page+1}&sort_col=timestamp&sort_order=desc" if len(orders) == limit else ""
+    previous = f"{page-1}" if page > 1 else ""
+    next = f"{page+1}" if len(orders) == limit else ""
 
     return {
         "previous": previous,
