@@ -215,19 +215,18 @@ def bottle_plan_calculation(
     """
     Determines how much of each potion to brew
     """
-    print(potion_brew_amount)
-    if not potion_brew_amount:
+    if not potion_brew_amount or not any(potion_brew_amount):
         return []
     plan = []
-    potion_index = 0
     potion_count = len(unique_potions)
     potion_unavailable = [0]*potion_count
     unique_potion_counts = [0]*potion_count
-    ml_types = ["red", "green", "blue", "dark"]
     min = potion_brew_amount[-1]
     potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
     brew_ratio_copy = potion_brew_ratio.copy()
     ml_used = ml_available.copy()
+
+    potion_index = 0
     count = 0
     while potion_storage_left > 0 and not all (potion_unavailable):
         count += 1
@@ -254,6 +253,7 @@ def bottle_plan_calculation(
         print({"potion_type": unique_potions[i], "quantity": unique_potion_counts[i]})
         plan.append( {"potion_type": unique_potions[i], "quantity": unique_potion_counts[i]} )
 
+    ml_types = ["red", "green", "blue", "dark"]
     for index in range(len(ml_types)):
         print(f"{ml_types[index]} used {ml_used[index]-ml_available[index]}")
     return plan

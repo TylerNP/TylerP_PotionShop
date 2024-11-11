@@ -43,5 +43,14 @@ class TestBottlerFunctions(unittest.TestCase):
         expected = []
         self.assertEqual(result, expected)
 
+    def test_plan_4(self):
+        brew_amt = [0, 0, 0, 0]
+        ml_stored = [1000, 1000, 1000, 1000]
+        unique_potions = [[25, 35, 10, 30], [2, 4, 90, 4], [94, 2, 2, 2], [50, 25, 10, 15]]
+        storage_left = 50
+        result = bottler.bottle_plan_calculation(brew_amt, ml_stored, unique_potions, storage_left)
+        expected = []
+        self.assertEqual(result, expected)
+
 if __name__ == '__main__':
     unittest.main()
