@@ -1,3 +1,6 @@
+# PotionShop
+PotionShop is a API served to manage a simulated ecommerce potion shop through [Potion Exchange](https://potion-exchange.vercel.app/) with its logic to manage invenotry of potion ingredients, potions created, and income. Dervied From [Central Coast Cauldrons](https://github.com/jackalnom/centralcoastcauldrons/tree/main)
+
 # Central Coast Cauldrons
 
 Central Coast Cauldrons is a stubbed out API meant to serve as a starting point for learning how to build backend servies that integrate with a persistance layer. You will progressively build out your own forked version of the API and integrate with a progressively more sophisticated database backend. When you register your backend at the [Potion Exchange](https://potion-exchange.vercel.app/) simulated customers will shop at your store using your API. 
