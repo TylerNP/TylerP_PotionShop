@@ -53,35 +53,47 @@ def get_capacity_plan():
     denominator = 0
     cap = 0
     with db.engine.begin() as connection:
-        sql_to_execute = "SELECT (SELECT SUM(gold) FROM gold_ledgers) AS gold, ml_capacity FROM global_inventory"
+        sql_to_execute = "SELECT (SELECT SUM(gold) FROM gold_ledgers) AS gold, ml_capacity, potion_capacity FROM global_inventory"
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             usable_gold = result.gold
-            capacity = result.ml_capacity
+            ml_capacity = result.ml_capacity
+            potion_capacity = result.potion_capacity
 
-        sql_to_execute = "SELECT capacity_numerator, capacity_denominator, numerator, denominator, capacity_cap FROM parameters"
+        sql_to_execute = "SELECT capacity_numerator, capacity_denominator, numerator, denominator, pot_capacity_cap, ml_capacity_cap FROM parameters"
         query = connection.execute(sqlalchemy.text(sql_to_execute))
         for result in query:
             capacity_denominator = result.capacity_denominator
             capacity_numerator = result.capacity_numerator
             numerator = result.numerator
             denominator = result.denominator
-            cap = result.capacity_cap
+            ml_cap = result.ml_capacity_cap
+            pot_cap = result.pot_capacity_cap
 
     cost_per_capacity = 1000
     both_capacity = 2 # Capacity is bought for both potions and ml at the same time
-    capacity_desired = (capacity * capacity_numerator // capacity_denominator)
-    capacity_desired_min = capacity_desired-capacity 
-    capacity_buying = (numerator*usable_gold)//(both_capacity*cost_per_capacity*denominator)
-    if capacity_buying < capacity_desired_min or capacity == cap:
-        capacity_buying = 0
-    if (capacity_buying + capacity) > cap:
-        capacity_buying = cap-capacity
-    print(f"Bought {capacity_buying} potion_capacity and {capacity_buying} ml_capacity")
+    ml_capacity_desired = (ml_capacity * capacity_numerator // capacity_denominator)
+    ml_capacity_desired_min = ml_capacity_desired-ml_capacity 
+    ml_capacity_buying = (numerator*usable_gold)//(both_capacity*cost_per_capacity*denominator)
+    pot_capacity_desired = (potion_capacity * capacity_numerator // capacity_denominator)
+    pot_capacity_desired_min = pot_capacity_desired-potion_capacity 
+    pot_capacity_buying = ml_capacity_buying
+
+    if ml_capacity_buying < ml_capacity_desired_min:
+        ml_capacity_buying = 0
+    if (ml_capacity_buying + ml_capacity) > ml_cap:
+        ml_capacity_buying = ml_cap-ml_capacity if ml_cap > ml_capacity else 0
+    
+    if pot_capacity_buying < pot_capacity_desired_min:
+        pot_capacity_buying = 0
+    if (pot_capacity_buying + potion_capacity) > pot_cap:
+        pot_capacity_buying = pot_cap-potion_capacity if pot_cap > potion_capacity else 0
+
+    print(f"Bought {ml_capacity_buying} potion_capacity and {pot_capacity_buying} ml_capacity")
     return {
-        "potion_capacity": capacity_buying,
-        "ml_capacity": capacity_buying
-        }
+        "potion_capacity": pot_capacity_buying,
+        "ml_capacity": ml_capacity_buying
+    }
 
 class CapacityPurchase(BaseModel):
     potion_capacity: int
