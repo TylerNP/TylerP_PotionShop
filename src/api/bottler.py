@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends
 from enum import Enum
 from pydantic import BaseModel
 from src.api import auth
-import random
 
 import sqlalchemy
 from src import database as db
@@ -130,7 +129,6 @@ def get_bottle_plan():
     # green potion to add.
     # Expressed in integers from 1 to 100 that must sum up to 100.
     ml_available = [0]*4
-    ml_max = [0]*4
     unique_potions = []
     potion_brew_amount = []
     potion_storage_left = 0
@@ -165,7 +163,7 @@ def get_bottle_plan():
                 SUM(ml_ledgers.num_blue_ml)::int AS num_blue_ml,
                 SUM(ml_ledgers.num_dark_ml)::int AS num_dark_ml,
                 (SELECT pot_threshold.threshold FROM pot_threshold) AS threshold,
-                (SELECT pot_remaining.stored FROM pot_remaining) AS remaining_storage
+                (SELECT pot_remaining.stored::int FROM pot_remaining) AS remaining_storage
             FROM 
                 ml_ledgers
         """
@@ -205,23 +203,19 @@ def get_bottle_plan():
             unique_potions.append([potion.red, potion.green, potion.blue, potion.dark])
             desired_potion_brew_count = potion_threshold-potion.quantity
             potion_brew_amount.append(desired_potion_brew_count)
-            ml_max[0] += potion.red*desired_potion_brew_count
-            ml_max[1] += potion.green*desired_potion_brew_count
-            ml_max[2] += potion.blue*desired_potion_brew_count
-            ml_max[3] += potion.dark*desired_potion_brew_count
 
-    return bottle_plan_calculation(potion_brew_amount, ml_available, ml_max, unique_potions, potion_storage_left)
+    return bottle_plan_calculation(potion_brew_amount, ml_available, unique_potions, potion_storage_left)
 
 def bottle_plan_calculation(
                                 potion_brew_amount : list[int], 
                                 ml_available : list[int], 
-                                ml_needed : list[int], 
                                 unique_potions : list[list[int]], 
                                 potion_storage_left : int
                             ) -> list[dict[str, any]]:
     """
     Determines how much of each potion to brew
     """
+    print(potion_brew_amount)
     if not potion_brew_amount:
         return []
     plan = []
@@ -233,41 +227,25 @@ def bottle_plan_calculation(
     min = potion_brew_amount[-1]
     potion_brew_ratio = [ round(quantity/min) for quantity in potion_brew_amount]
     brew_ratio_copy = potion_brew_ratio.copy()
-    ml_usable = [ ml_available[index] if ml_available[index] < ml_needed[index] else ml_needed[index] for index in range(len(ml_needed))]
-    ml_used = ml_usable.copy()
+    ml_used = ml_available.copy()
     count = 0
-    loop_count = 0
     while potion_storage_left > 0 and not all (potion_unavailable):
         count += 1
         if not any(brew_ratio_copy):
             brew_ratio_copy = potion_brew_ratio.copy()
         if brew_ratio_copy[potion_index] == 0 or potion_unavailable[potion_index] == 1:
             potion_index = (potion_index+1)%potion_count
-            loop_count = loop_count + 1
-            if loop_count > potion_count:
-                print("opps")
-                break
-            continue
-        loop_count = 0
-        brewed = True
-        ml_leftover = [0]*4
-        for index in range(len(ml_usable)):
-            ml_leftover[index]= ml_usable[index] - unique_potions[potion_index][index]
-            if ml_leftover[index] < 0:
-                brewed = False
-                break
-        if not brewed:
+        ml_leftover = [ml_available[index]-unique_potions[potion_index][index] for index in range(len(ml_available))]
+        if any(ml < 0 for ml in ml_leftover) or potion_brew_amount[potion_index] == unique_potion_counts[potion_index]:
             potion_unavailable[potion_index] = 1
             potion_brew_ratio[potion_index] = 0
             brew_ratio_copy[potion_index] = 0
             continue
-        potion_storage_left = potion_storage_left - 1
-        ml_usable = [ml for ml in ml_leftover]
+        potion_storage_left  -= 1
         unique_potion_counts[potion_index] += 1
         brew_ratio_copy[potion_index] -= 1
-        if potion_brew_amount[potion_index] == unique_potion_counts[potion_index]:
-            potion_unavailable[potion_index] = 1
-        potion_index = (potion_index+1)%len(unique_potions)
+        ml_available = [ml for ml in ml_leftover]
+        potion_index = (potion_index+1)%potion_count
 
     print(f"Looped: {count} Times") 
     for i in range(len(unique_potions)):
@@ -277,7 +255,7 @@ def bottle_plan_calculation(
         plan.append( {"potion_type": unique_potions[i], "quantity": unique_potion_counts[i]} )
 
     for index in range(len(ml_types)):
-        print(f"{ml_types[index]} used {ml_used[index]-ml_usable[index]}")
+        print(f"{ml_types[index]} used {ml_used[index]-ml_available[index]}")
     return plan
 
 def update_potion_brew_list() -> object:
@@ -371,132 +349,6 @@ def update_potion_brew_list() -> object:
     sql_to_execute = "INSERT INTO potions ETC"
     return None
 
-def create_random_potion(increment : int, type : int, price : int) -> dict[str, any]:
-    """
-    Generate a random potion using an increment to determine the difference between them
-    Type 1 Gives a uneven distribution roughly 50/25/12/6
-    Type 2 Gives a more uniform distribution
-    """
-    if (increment > 100):
-        return ValueError
-    random.seed(version=2)
-    num_types = 4
-    potion_type = [0]*num_types
-    total = 100
-    if type == 1: 
-        index = random.randrange(0,num_types)
-        for index in range(num_types-1):
-            potion_type[index] = random.randrange(0,total+1,increment)
-            total = total - potion_type[index]  
-            index = (index+1)%4
-        potion_type[index] = total
-    elif (type == 2):
-        if total%increment != 0:
-            potion_type[random.randrange(0,num_types)] = total%increment
-        for _ in range(total//increment):
-            potion_type[random.randrange(0,num_types)] += increment
-    else:
-        return NotImplemented
-    strings = generate_name_sku(potion_type)
-    return {
-                "sku":strings["sku"],
-                "name":strings["name"],
-                "price":price,
-                "red":potion_type[0],
-                "green":potion_type[1],
-                "blue":potion_type[2],
-                "dark":potion_type[3]
-    }
-
-def generate_name_sku(potion_type : list[int]) -> dict[str, str]:
-    """
-    Generate a simply name and sku with red, green, blue, and dark
-    """
-    ml_types = ["r", "g", "b", "d"]
-    num_types = 4
-    sku = ""
-    name = ""
-    for index in range(num_types):
-        sku += ml_types[index] + str(potion_type[index])
-        if (index != num_types-1):
-            sku += '_'
-        if potion_type[index] != 0:
-            name += ml_types[index] + str(potion_type[index])
-            if (index == num_types-1):
-                break
-            name += '_'
-    if name[-1] == "_":
-        name = name[0:len(name)-1]
-    return {
-                "sku":sku,
-                "name":name
-    }
-
-def vary_potion(potion : dict[str, any], step : int, degree : int) -> dict[str, any]:
-    """
-    Generate a variant of the given potion adjusting the "main" color with 
-    changes determined by step and degree
-    """
-    if degree > 3 or degree < 1:
-        return ValueError
-    potion_type = potion["potion_type"]
-    main = potion_type.index(max(potion_type))
-    max_ml = 100
-    if potion_type[main] >= step:
-        num_types = 4
-        change = step // degree
-        if step%degree != 0:
-            index = main
-            while index == main:
-                index = random.randrange(0, num_types)
-            potion_type[index] += step%degree
-        for _ in range(degree):
-            index = main
-            while index == main:
-                index = random.randrange(0, num_types)
-            potion_type[index] += change
-        potion_type[main] -= step
-        strings = generate_name_sku(potion_type)
-        return {
-                    "sku":strings["sku"],
-                    "name":strings["name"],
-                    "price":potion["price"],
-                    "red":potion_type[0],
-                    "green":potion_type[1],
-                    "blue":potion_type[2],
-                    "dark":potion_type[3]
-        }
-    elif step//degree < max_ml:
-        return create_random_potion(step//degree, 2, potion["price"])
-    else:
-        return ValueError
-
-def insert_new_potion(potion : dict[str, any]) -> bool:
-    print(potion)
-    sql_to_execute = """
-        SELECT 1 FROM potions WHERE red = :red AND green = :green AND blue = :blue AND dark = :dark
-    """
-    insert = False
-    with db.engine.begin() as connection:
-        try: 
-            connection.execute(sqlalchemy.text(sql_to_execute), potion).scalar_one()
-        except sqlalchemy.exc.NoResultFound:
-            sql_to_execute = """
-                INSERT INTO potions (price, sku, name, red, green, blue, dark) 
-                VALUES (:price, :sku, :name, :red, :green, :blue, :dark)
-            """
-            connection.execute(sqlalchemy.text(sql_to_execute), potion)
-            sql_to_execute = """
-                INSERT INTO new_potion (sku, tick_created) VALUES (:sku, (SELECT MAX(id) FROM time))
-            """
-            connection.execute(sqlalchemy.text(sql_to_execute), potion)
-            insert = True
-        print(f"Added New Potion {potion}: {insert}")
-    return insert
 
 if __name__ == "__main__":
-    new_potion = create_random_potion(20, 1, 25)
-    #varied_potion = vary_potion(new_potion, 34, 3)
-    #print(varied_potion)
-
-    #print(get_bottle_plan())
+    print(get_bottle_plan())

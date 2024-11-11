@@ -1,4 +1,4 @@
-from src.api import barrels, bottler
+from src.api import barrels
 from src.api.barrels import Barrel
 import unittest
 from src.api.barrels import simplified_plan as barrel_plan
@@ -157,8 +157,5 @@ class TestBarrelFunctions(unittest.TestCase):
         ml_capacity = 60000
         self.assertEqual(barrels.simplified_plan(TestBarrelFunctions.barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity), expected)
 
-class TestBottlerFunctions(unittest.TestCase):
-    def none():
-        print("NONE")
 if __name__ == '__main__':
     unittest.main()
