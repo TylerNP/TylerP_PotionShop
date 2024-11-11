@@ -45,7 +45,7 @@ def get_catalog():
                 ) AS sold
                 WHERE potions.sku = sold.sku
                 AND quantity > 0
-                LIMIT 5
+                LIMIT 6
             ),
             potion_count AS (
                 SELECT potion_ledgers.sku, SUM(potion_ledgers.quantity) AS quantity
