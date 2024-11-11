@@ -116,7 +116,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
-
+    #update_potion_brew_list()
     return "OK"
 
 @router.post("/plan")
@@ -258,97 +258,103 @@ def bottle_plan_calculation(
         print(f"{ml_types[index]} used {ml_used[index]-ml_available[index]}")
     return plan
 
-def update_potion_brew_list() -> object:
+def update_potion_brew_list() -> None:
     """
     Use Current Time To Determine Which Potion To Brew For Next Tick
+    Find And Set Potions to Brew For Potions That Are Popular For Next Tick/ 2 Ticks
     """
-    """
-    Find And Set Potions That Are Popular For Next Tick/ 2 Ticks
-    Generate New Potions For Potions That Don't Meet A Specific Threshold Popularity
-
-    SET TOP 4 POTIONS OF A DAY TO BREW
-    ==================================
     
+    #Determine if plan should be updated (whenever the next day is about to occur)
+    with db.engine.begin() as connection:
+        connection.execute(sqlalchemy.text("UPDATE potions SET brew = False"))
+        sql_to_execute = """
+            WITH time_info AS (
+                SELECT time.id, time.day, time.hour FROM time ORDER BY time.id DESC LIMIT 1
+            ), next_days AS (
+                SELECT 
+                    next_day.day AS curr_day,
+                    sj.day AS next_day 
+                FROM 
+                    next_day 
+                JOIN 
+                    next_day AS sj ON next_day.next_day_id = sj.id
+                JOIN
+                    time_info ON next_day.day = time_info.day
+            ), day_for_plan AS (
+                SELECT 
+                    CASE 
+                        WHEN time_info.hour = 22 THEN next_days.next_day
+                        ELSE next_days.curr_day
+                    END AS day
+                FROM 
+                    time_info, 
+                    next_days
+            ), time_range AS (
+                SELECT
+                    time.id
+                FROM 
+                    time
+                JOIN 
+                    day_for_plan ON time.day = day_for_plan.day
+                ORDER BY 
+                    time.id DESC
+                LIMIT 12
+                OFFSET 1
+            ), pots_sold AS (
+                SELECT
+                    potions.sku,
+                    SUM(-1*potion_ledgers.quantity) AS amt
+                FROM
+                    potion_ledgers
+                JOIN 
+                    potions ON potion_ledgers.sku = potions.sku
+                JOIN 
+                    transactions ON potion_ledgers.transaction_id = transactions.id
+                JOIN
+                    time_range ON transactions.time_id = time_range.id
+                WHERE
+                    potions.price >= 10 -- Unwanted potions are set under 10
+                    AND potion_ledgers.quantity < 0
+                GROUP BY
+                    potions.sku
+                ORDER BY
+                    amt DESC
+                LIMIT 6
+            ), more_pots AS (
+                SELECT
+                    potions.sku,
+                    SUM(-1*potion_ledgers.quantity) AS amt
+                FROM 
+                    potions
+                JOIN 
+                    potion_ledgers ON potions.sku = potion_ledgers.sku
+                WHERE 
+                    NOT EXISTS (SELECT 1 FROM pots_sold WHERE pots_sold.sku = potions.sku)
+                    AND potions.price >= 10
+                    AND potion_ledgers.quantity < 0
+                GROUP BY 
+                    potions.sku
+                ORDER BY 
+                    amt DESC
+                LIMIT 6 - (SELECT COUNT(1) FROM pots_sold)
+            ), pots_to_brew AS (
+                SELECT * FROM pots_sold 
+                UNION ALL 
+                SELECT * FROM more_pots
+            )
 
-    GRAB LEAST 2 PERFORMANT (OUt of 6) 
-    AND Generate New Potions OR Variants
-    """
-    #Get The Next Day For Brewing
-    sql_to_execute = """
-                        SELECT next_day.day 
-                        FROM next_day 
-                        WHERE next_day.id = (
-                            SELECT next_day.next_day_id 
-                            FROM next_day 
-                            WHERE next_day.day = :day
-                        )
-                    """
-    #Set All Potions Brewing to Off
-    sql_to_execute = """
-                        UPDATE potions SET brew = False
-                    """
-    # Get Top Performing Potions For A Specific Day
-    sql_to_execute = """
-                        WITH sold (sku, amt) AS (
-                            SELECT 
-                                potions.sku, 
-                                SUM(-1*potion_ledgers.quantity) AS sold_amt 
-                            FROM 
-                                potions, 
-                                potion_ledgers, 
-                                transactions, (
-                                    SELECT 
-                                        time.id
-                                    FROM 
-                                        time
-                                    WHERE 
-                                        time.day = :next_day
-                                        AND time.id BETWEEN (
-                                            SELECT MAX(time.id)-12 FROM time WHERE time.day = :next_day
-                                        ) AND (
-                                            SELECT MAX(time.id) FROM time WHERE time.day = :next_day
-                                        )
-                                    ORDER BY 
-                                        time.id DESC
-                                    LIMIT 12
-                                    OFFSET 1
-                                ) AS time_filtered
-                            WHERE 
-                                potions.sku = potion_ledgers.sku 
-                                AND potions.price > 10
-                                AND potion_ledgers.transaction_id = transactions.id 
-                                AND transactions.time_id = time_filtered.id
-                                AND potion_ledgers.quantity < 0 
-                            GROUP BY 
-                                potions.sku
-                        )
-
-                        UPDATE potions 
-                        SET brew = new.brew
-                        FROM (
-                            SELECT 
-                                sold.sku, 
-                                (sold.amt > (
-                                    SELECT 
-                                        COALESCE(MAX(cutoff.amt), 0)  
-                                    FROM (
-                                        SELECT sold.amt AS amt 
-                                        FROM sold 
-                                        ORDER BY sold.amt DESC 
-                                        LIMIT 1 
-                                        OFFSET 4
-                                    ) as cutoff
-                            )) AS brew 
-                            FROM sold 
-                            LIMIT 4
-                        ) AS new
-                        WHERE potions.sku = new.sku;
-                    """
-    #Only create new potions types after some time,
-    #set old new potions cost to 1 if cant sell
-    sql_to_execute = "INSERT INTO potions ETC"
-    return None
-
+            UPDATE 
+                potions
+            SET 
+                brew = True
+            FROM 
+                pots_to_brew
+            WHERE 
+                potions.sku = pots_to_brew.sku;
+        """
+        connection.execute(sqlalchemy.text(sql_to_execute))
 
 if __name__ == "__main__":
-    print(get_bottle_plan())
+    print("Ran bottler.py")
+    #print(get_bottle_plan())
+    #update_potion_brew_list()
