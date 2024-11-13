@@ -263,7 +263,7 @@ def update_potion_brew_list() -> None:
     Use Current Time To Determine Which Potion To Brew For Next Tick
     Find And Set Potions to Brew For Potions That Are Popular For Next Tick/ 2 Ticks
     """
-    
+    print("Updated Potion Brew List")
     #Determine if plan should be updated (whenever the next day is about to occur)
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text("UPDATE potions SET brew = False"))
