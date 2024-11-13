@@ -116,7 +116,6 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
-    #update_potion_brew_list()
     return "OK"
 
 @router.post("/plan")
@@ -204,6 +203,7 @@ def get_bottle_plan():
             desired_potion_brew_count = potion_threshold-potion.quantity
             potion_brew_amount.append(desired_potion_brew_count)
 
+    update_potion_brew_list()
     return bottle_plan_calculation(potion_brew_amount, ml_available, unique_potions, potion_storage_left)
 
 def bottle_plan_calculation(
@@ -356,5 +356,5 @@ def update_potion_brew_list() -> None:
 
 if __name__ == "__main__":
     print("Ran bottler.py")
-    #print(get_bottle_plan())
+    print(get_bottle_plan())
     #update_potion_brew_list()
