@@ -131,6 +131,8 @@ def get_bottle_plan():
     unique_potions = []
     potion_brew_amount = []
     potion_storage_left = 0
+
+    update_potion_brew_list()
     with db.engine.begin() as connection:
         try:
             connection.execute(sqlalchemy.text("SELECT 1 FROM potions WHERE brew = TRUE LIMIT 1")).scalar_one()
@@ -203,7 +205,6 @@ def get_bottle_plan():
             desired_potion_brew_count = potion_threshold-potion.quantity
             potion_brew_amount.append(desired_potion_brew_count)
 
-    update_potion_brew_list()
     return bottle_plan_calculation(potion_brew_amount, ml_available, unique_potions, potion_storage_left)
 
 def bottle_plan_calculation(
