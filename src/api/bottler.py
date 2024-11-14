@@ -320,27 +320,6 @@ def update_potion_brew_list() -> None:
                 ORDER BY
                     amt DESC
                 LIMIT 6
-            ), more_pots AS (
-                SELECT
-                    potions.sku,
-                    SUM(-1*potion_ledgers.quantity) AS amt
-                FROM 
-                    potions
-                JOIN 
-                    potion_ledgers ON potions.sku = potion_ledgers.sku
-                WHERE 
-                    NOT EXISTS (SELECT 1 FROM pots_sold WHERE pots_sold.sku = potions.sku)
-                    AND potions.price >= 10
-                    AND potion_ledgers.quantity < 0
-                GROUP BY 
-                    potions.sku
-                ORDER BY 
-                    amt DESC
-                LIMIT 6 - (SELECT COUNT(1) FROM pots_sold)
-            ), pots_to_brew AS (
-                SELECT * FROM pots_sold 
-                UNION ALL 
-                SELECT * FROM more_pots
             )
 
             UPDATE 
@@ -348,9 +327,9 @@ def update_potion_brew_list() -> None:
             SET 
                 brew = True
             FROM 
-                pots_to_brew
+                pots_sold
             WHERE 
-                potions.sku = pots_to_brew.sku;
+                potions.sku = pots_sold.sku;
         """
         connection.execute(sqlalchemy.text(sql_to_execute))
 
