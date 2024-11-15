@@ -116,7 +116,6 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
     print("used %d mls" % (ml_used[0]+ml_used[1]+ml_used[2]+ml_used[3]))
-    #update_potion_brew_list()
     return "OK"
 
 @router.post("/plan")
@@ -132,6 +131,8 @@ def get_bottle_plan():
     unique_potions = []
     potion_brew_amount = []
     potion_storage_left = 0
+
+    update_potion_brew_list()
     with db.engine.begin() as connection:
         try:
             connection.execute(sqlalchemy.text("SELECT 1 FROM potions WHERE brew = TRUE LIMIT 1")).scalar_one()
@@ -324,27 +325,6 @@ def update_potion_brew_list() -> None:
                 ORDER BY
                     amt DESC
                 LIMIT 6
-            ), more_pots AS (
-                SELECT
-                    potions.sku,
-                    SUM(-1*potion_ledgers.quantity) AS amt
-                FROM 
-                    potions
-                JOIN 
-                    potion_ledgers ON potions.sku = potion_ledgers.sku
-                WHERE 
-                    NOT EXISTS (SELECT 1 FROM pots_sold WHERE pots_sold.sku = potions.sku)
-                    AND potions.price >= 10
-                    AND potion_ledgers.quantity < 0
-                GROUP BY 
-                    potions.sku
-                ORDER BY 
-                    amt DESC
-                LIMIT 6 - (SELECT COUNT(1) FROM pots_sold)
-            ), pots_to_brew AS (
-                SELECT * FROM pots_sold 
-                UNION ALL 
-                SELECT * FROM more_pots
             )
 
             UPDATE 
@@ -352,13 +332,13 @@ def update_potion_brew_list() -> None:
             SET 
                 brew = True
             FROM 
-                pots_to_brew
+                pots_sold
             WHERE 
-                potions.sku = pots_to_brew.sku;
+                potions.sku = pots_sold.sku;
         """
         connection.execute(sqlalchemy.text(sql_to_execute))
 
 if __name__ == "__main__":
     print("Ran bottler.py")
-    #print(get_bottle_plan())
+    print(get_bottle_plan())
     #update_potion_brew_list()
