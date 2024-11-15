@@ -266,6 +266,10 @@ def update_potion_brew_list() -> None:
     print("Updated Potion Brew List")
     #Determine if plan should be updated (whenever the next day is about to occur)
     with db.engine.begin() as connection:
+        sql_to_execute = "SELECT parameters.auto FROM parameters"
+        auto = connection.execute(sqlalchemy.text(sql_to_execute)).scalar_one()
+        if not auto:
+            return None
         connection.execute(sqlalchemy.text("UPDATE potions SET brew = False"))
         sql_to_execute = """
             WITH time_info AS (

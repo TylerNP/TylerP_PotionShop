@@ -282,7 +282,8 @@ def simplified_plan(
     plan = []
     num_types = 4
 
-    if sum(ml_stored) == ml_capacity:
+    total_ml = sum(ml_stored)
+    if total_ml == ml_capacity:
         return plan
     ml_count = sum(1 for ml in ml_needed if ml != 0)
     if ml_count == 0:
@@ -321,7 +322,7 @@ def simplified_plan(
     elif not_buying_count > 0:
         ml_threshold = (ml_capacity-overflow_ml) // (num_types-not_buying_count)
 
-    minimum_ml_buyable = 200 # mini barrel amount
+    minimum_ml_buyable = total_ml // 40 # min barrel amount
     ml_space = [0]*num_types
 
     for index in range(num_types):
@@ -376,6 +377,11 @@ def simplified_plan(
             ml_ratio[type_index] = 0
             continue
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
+        if barrel_to_buy.ml_per_barrel < minimum_ml_buyable:
+            ml_can_buy[type_index] = 0
+            ml_ratio_copy[type_index] = 0
+            ml_ratio[type_index] = 0
+            continue
         if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
             list_of_index[type_index] = list_of_index[type_index] + 1
             continue   
@@ -435,7 +441,8 @@ if __name__ == "__main__":
     usable_gold = 9150
     small_gold = 500
     ml_capacity = 60000
-    #simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    barrel_plan_calculation(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
 
     ml_needed = [5200,3300,2700,600]
     ml_stored = [24866,33468,33566,800]
@@ -449,7 +456,7 @@ if __name__ == "__main__":
     usable_gold = 40645
     small_gold = 500
     ml_capacity = 150000
-    simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    #simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
     #get_wholesale_purchase_plan(barrel_catalog)
     
 
