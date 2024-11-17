@@ -135,6 +135,12 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
                             VALUES (-1*:gold_cost, :transaction_id)
                         """
         connection.execute(sqlalchemy.text(sql_to_execute), values)
+        sql_to_execute = """
+                            UPDATE global_inventory SET 
+                            potion_capacity = potion_capacity + :potion_capacity_added,
+                            ml_capacity = ml_capacity + :ml_capacity_added
+                        """
+        connection.execute(sqlalchemy.text(sql_to_execute), values)
 
     print(f"Used {total_cost} For {ml_capacity_increment} ml_capacity and {potion_capacity_increment} potion_capacity")
     return "OK"
