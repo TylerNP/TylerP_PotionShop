@@ -246,6 +246,11 @@ def barrel_plan_calculation(
             ml_ratio[type_index] = 0
             continue
         barrel_to_buy = barrel_types[type_index][list_of_index[type_index]]
+        if barrel_to_buy.ml_per_barrel < minimum_ml_buyable:
+            ml_can_buy[type_index] = 0
+            ml_ratio_copy[type_index] = 0
+            ml_ratio[type_index] = 0
+            continue
         if (usable_gold < barrel_to_buy.price) or (ml_space[type_index] < barrel_to_buy.ml_per_barrel):
             list_of_index[type_index] = list_of_index[type_index] + 1
             continue   
@@ -464,5 +469,12 @@ if __name__ == "__main__":
     ml_capacity = 150000
     #simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
     #get_wholesale_purchase_plan(barrel_catalog)
+
+    ml_needed = [1000,1000,1000,1000]
+    ml_stored = [22183, 36554, 38563, 1900]
+    usable_gold = 20000
+    small_gold = 500
+    ml_capacity = 150000
+    #barrel_plan_calculation(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity, barrel_ratio)
     
 
