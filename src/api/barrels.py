@@ -88,6 +88,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     usable_gold = 0
     ml_capacity = 0
     small_gold = 0
+    barrel_ratio = 0
     num_types = 4
     ml_needed = [0]*num_types
     ml_stored = [0]*num_types
@@ -98,6 +99,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 (10000*(SELECT ml_capacity FROM global_inventory)) AS capacity, 
                 ((SELECT SUM(gold) FROM gold_ledgers)-(SELECT gold_threshold FROM parameters)) AS usable_gold, 
                 (SELECT starting_gold_saving FROM parameters) AS small_gold,
+                (SELECT barrel_ratio FROM parameters) AS barrel_ratio,
                 SUM(num_red_ml)::int AS num_red_ml, 
                 SUM(num_green_ml)::int AS num_green_ml, 
                 SUM(num_blue_ml)::int AS num_blue_ml, 
@@ -109,6 +111,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_capacity = result.capacity
             usable_gold = result.usable_gold
             small_gold = result.small_gold
+            barrel_ratio = result.barrel_ratio
             ml_stored[0] = result.num_red_ml
             ml_stored[1] = result.num_green_ml
             ml_stored[2] = result.num_blue_ml
@@ -139,7 +142,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             ml_needed[2] += pots.blue*(pots.threshold-pots.quantity)
             ml_needed[3] += pots.dark*(pots.threshold-pots.quantity)
 
-    return barrel_plan_calculation(wholesale_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    return barrel_plan_calculation(wholesale_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity, barrel_ratio)
 
 def barrel_plan_calculation(
     wholesale_catalog : list[Barrel], 
@@ -147,12 +150,14 @@ def barrel_plan_calculation(
     ml_stored : list[int],
     usable_gold : int,
     small_gold : int,
-    ml_capacity : int
+    ml_capacity : int,
+    barrel_ratio : int
 ) -> dict[str, any]:
     plan = []
     num_types = 4
 
-    if sum(ml_stored) == ml_capacity:
+    total_ml = sum(ml_stored)
+    if total_ml == ml_capacity:
         return plan
     ml_count = sum(1 for ml in ml_needed if ml != 0)
     if ml_count == 0:
@@ -188,7 +193,7 @@ def barrel_plan_calculation(
     elif not_buying_count > 0:
         ml_threshold = (ml_capacity-overflow_ml) // (num_types-not_buying_count)
 
-    minimum_ml_buyable = 200 # mini barrel amount
+    minimum_ml_buyable = total_ml//barrel_ratio
     ml_space = [0]*num_types
 
     for index in range(num_types):
@@ -322,7 +327,7 @@ def simplified_plan(
     elif not_buying_count > 0:
         ml_threshold = (ml_capacity-overflow_ml) // (num_types-not_buying_count)
 
-    minimum_ml_buyable = total_ml // 40 # min barrel amount
+    minimum_ml_buyable = total_ml // 40 # Works For Capacity <= 40
     ml_space = [0]*num_types
 
     for index in range(num_types):
@@ -441,8 +446,9 @@ if __name__ == "__main__":
     usable_gold = 9150
     small_gold = 500
     ml_capacity = 60000
-    simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
-    barrel_plan_calculation(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    barrel_ratio = 40
+    #simplified_plan(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity)
+    #barrel_plan_calculation(barrel_catalog, ml_needed, ml_stored, usable_gold, small_gold, ml_capacity, barrel_ratio)
 
     ml_needed = [5200,3300,2700,600]
     ml_stored = [24866,33468,33566,800]

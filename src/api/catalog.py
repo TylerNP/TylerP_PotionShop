@@ -22,7 +22,7 @@ def get_catalog():
                     FROM (
                         SELECT potions.sku,
                             SUM(-1*potion_ledgers.quantity) AS amt 
-                        FROM potions, potion_ledgers, transactions, ( 
+                        FROM potions, potion_ledgers, transactions, potion_allowed, ( 
                             SELECT time.id AS id
                             FROM time
                             WHERE time.day = (
@@ -36,9 +36,11 @@ def get_catalog():
                             OFFSET 1
                         ) AS time_filtered 
                         WHERE potions.sku = potion_ledgers.sku 
+                        AND potions.sku = potion_allowed.sku
                         AND potion_ledgers.transaction_id = transactions.id 
-                        AND potion_ledgers.quantity < 0 
                         AND transactions.time_id = time_filtered.id
+                        AND potion_ledgers.quantity < 0 
+                        AND potion_allowed.catalog = True
                         GROUP BY potions.sku
                     ) AS part
                     ORDER BY part.amt DESC
@@ -46,25 +48,28 @@ def get_catalog():
                 WHERE potions.sku = sold.sku
                 AND quantity > 0
                 LIMIT 6
-            ),
-            potion_count AS (
+                ),
+                potion_count AS (
                 SELECT potion_ledgers.sku, SUM(potion_ledgers.quantity) AS quantity
-                FROM potion_ledgers
+                FROM potion_ledgers, potion_allowed
+                WHERE potion_ledgers.sku = potion_allowed.sku AND potion_allowed.catalog = True
                 GROUP BY potion_ledgers.sku
-            )
+                )
 
-            (SELECT potions.sku, potion_count.quantity::int, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name
-            FROM potions
-            LEFT JOIN potion_count ON potions.sku = potion_count.sku
-            WHERE NOT EXISTS (SELECT popular.sku FROM popular WHERE popular.sku = potions.sku)
-            AND potions.quantity > 0
-            ORDER BY RANDOM()
-            LIMIT 6-(SELECT COUNT(1) FROM popular)
-            ) UNION ALL (
-            SELECT potions.sku, potion_count.quantity::int, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name 
-            FROM potions
-            LEFT JOIN potion_count ON potions.sku = potion_count.sku
-            JOIN popular ON potions.sku = popular.sku)
+
+                (SELECT potions.sku, potion_count.quantity::int, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name
+                FROM potions
+                LEFT JOIN potion_count ON potions.sku = potion_count.sku
+                JOIN potion_allowed ON potions.sku = potion_allowed.sku AND potion_allowed.catalog = True
+                WHERE NOT EXISTS (SELECT popular.sku FROM popular WHERE popular.sku = potions.sku)
+                AND potions.quantity > 0
+                ORDER BY RANDOM()
+                LIMIT 6-(SELECT COUNT(1) FROM popular)
+                ) UNION ALL (
+                SELECT potions.sku, potion_count.quantity::int, potions.price, potions.red, potions.green, potions.blue, potions.dark, potions.name 
+                FROM potions
+                LEFT JOIN potion_count ON potions.sku = potion_count.sku
+                JOIN popular ON potions.sku = popular.sku)
         """
         
         potions = connection.execute(sqlalchemy.text(sql_to_execute))
